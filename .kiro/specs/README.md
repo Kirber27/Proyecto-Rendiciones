@@ -9,7 +9,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | ⬜ |
 | 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 En curso (4.1 ✔) |
 | 05 | [Carpetas](05-carpetas/) — mis rendiciones y carpetas por persona | 04 | ⬜ |
-| 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | ⬜ |
+| 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | 🟡 En curso (6.1 ✔) |
 | 07 | [Banco y conciliación](07-banco-conciliacion/) — cartolas y propuestas | 06 | ⬜ |
 | 08 | [Perfiles](08-perfiles/) — personas, funciones, cuentas | 01 | ⬜ |
 | 09 | Despliegue (abajo) | todo | ⬜ |
