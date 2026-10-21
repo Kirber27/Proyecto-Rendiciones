@@ -15,10 +15,10 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - `ThemeToggle` + composable `useTheme`.
   - Página temporal `/_estilos` con botones, chips, tabla, alertas, inputs, en claro y oscuro, para comparar con la maqueta.
 
-- [ ] **1.3 Layout: AppHeader + AppTabs + router** _(R2.4, R4.2)_
+- [x] **1.3 Layout: AppHeader + AppTabs + router** _(R2.4, R4.2)_
   - Marca, pestañas (`nav-pills`) con badge, contenedor 1160px.
   - Rutas con `meta.roles` y vistas placeholder (EmptyState "En construcción").
-  - Componentes ui base: `AppChip`, `EmptyState`, `KpiTile`, `Lightbox`.
+  - Componentes ui base: `AppChip`, `EmptyState`, `KpiTile`, `AppLightbox`.
 
 - [ ] **1.4 Dominio base portado** _(R7.1)_
   - `src/domain/formato.ts` y `src/domain/rendicion.ts` (totales).

@@ -2,73 +2,72 @@
 // Página de muestra del tema (solo desarrollo): sirve para comparar con CLAUDE/app/rendiciones-heca.html
 // en claro y oscuro. Datos ficticios.
 import { ref } from 'vue'
-import ThemeToggle from '@/components/layout/ThemeToggle.vue'
+import AppChip from '@/components/ui/AppChip.vue'
+import AppLightbox from '@/components/ui/AppLightbox.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import KpiTile from '@/components/ui/KpiTile.vue'
 
-const pestana = ref('rendir')
-const pestanas = [
-  { id: 'rendir', texto: 'Rendir gastos' },
-  { id: 'mias', texto: 'Carpetas' },
-  { id: 'aprobar', texto: 'Por aprobar', badge: 3 },
-  { id: 'libro', texto: 'Rendiciones' },
-  { id: 'personas', texto: 'Personas' },
-  { id: 'banco', texto: 'Banco' },
-  { id: 'perfiles', texto: 'Perfiles' },
-]
+const zoom = ref<string | null>(null)
+const imagenDemo =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600"><rect width="100%" height="100%" fill="#e6eefa"/><text x="50%" y="50%" font-family="sans-serif" font-size="28" text-anchor="middle" fill="#1f5fbf">Boleta de ejemplo</text></svg>',
+  )
 
-const chips = [
-  ['ok', 'Aprobada'],
-  ['ok', 'Pagada'],
-  ['warn', 'Pago parcial'],
-  ['warn', 'Reenviada'],
-  ['bad', 'Observada'],
-  ['bad', 'Rechazada'],
-  ['info', 'En revisión'],
-  ['info', 'Pendiente de pago'],
-  ['muted', 'Ingresada (historial)'],
+const estados = [
+  'Aprobada',
+  'Pagada',
+  'Pago parcial',
+  'Reenviada',
+  'Observada',
+  'Rechazada',
+  'En revisión',
+  'Pendiente de pago',
+  'Ingresada (historial)',
 ]
 
 const filas = [
-  { folio: 'JPE-012', fecha: '14-10-2026', nombre: 'Juana Pérez', nro: 12, total: '$ 70.389', pagado: '$ 70.389', porPagar: '—', estado: ['ok', 'Pagada'] },
-  { folio: 'MSO-004', fecha: '09-10-2026', nombre: 'Mario Soto', nro: 4, total: '$ 182.500', pagado: '$ 50.000', porPagar: '$ 132.500', estado: ['warn', 'Pago parcial'] },
-  { folio: 'LRO-031', fecha: '02-10-2026', nombre: 'Laura Rojas', nro: 31, total: '$ 23.990', pagado: '$ 0', porPagar: '$ 23.990', estado: ['info', 'Pendiente de pago'] },
+  {
+    folio: 'JPE-012',
+    fecha: '14-10-2026',
+    nombre: 'Juana Pérez',
+    nro: 12,
+    total: '$ 70.389',
+    pagado: '$ 70.389',
+    porPagar: '—',
+    estado: 'Pagada',
+  },
+  {
+    folio: 'MSO-004',
+    fecha: '09-10-2026',
+    nombre: 'Mario Soto',
+    nro: 4,
+    total: '$ 182.500',
+    pagado: '$ 50.000',
+    porPagar: '$ 132.500',
+    estado: 'Pago parcial',
+  },
+  {
+    folio: 'LRO-031',
+    fecha: '02-10-2026',
+    nombre: 'Laura Rojas',
+    nro: 31,
+    total: '$ 23.990',
+    pagado: '$ 0',
+    porPagar: '$ 23.990',
+    estado: 'Pendiente de pago',
+  },
 ]
 const sel = ref('MSO-004')
 </script>
 
 <template>
-  <header class="app-header">
-    <div class="app-wrap d-flex flex-wrap align-items-center gap-2 column-gap-4 py-2">
-      <div class="brand">
-        <b>Rendiciones Heca</b>
-        <small>POE-GLO-FIN-003 · RENDICIÓN DE GASTOS</small>
-      </div>
-      <nav class="nav nav-pills gap-1 flex-wrap" role="tablist">
-        <button
-          v-for="p in pestanas"
-          :key="p.id"
-          type="button"
-          role="tab"
-          class="nav-link d-inline-flex align-items-center gap-2"
-          :class="{ active: pestana === p.id }"
-          :aria-selected="pestana === p.id"
-          @click="pestana = p.id"
-        >
-          {{ p.texto }}
-          <span v-if="p.badge" class="badge">{{ p.badge }}</span>
-        </button>
-      </nav>
-      <div class="ms-auto">
-        <ThemeToggle />
-      </div>
-    </div>
-  </header>
-
-  <main class="app-wrap py-4 d-flex flex-column gap-3">
+  <div class="d-flex flex-column gap-3">
     <div>
       <h1>Muestra del tema</h1>
       <p class="lead-muted">
-        Página de desarrollo para comparar con la maqueta. Cambia el tema con el botón de arriba a la
-        derecha.
+        Página de desarrollo para comparar con la maqueta. Cambia el tema con el botón ◐ y el rol de
+        prueba con el selector de arriba a la derecha.
       </p>
     </div>
 
@@ -80,8 +79,13 @@ const sel = ref('MSO-004')
 
     <div class="drop">
       <button type="button" class="btn btn-primary btn-lg">Sacar o subir fotos</button>
-      <span class="small text-body-secondary">JPG, PNG o WebP. Si la boleta llegó en PDF, sube un pantallazo.</span>
-      <div class="reading"><span class="dot" /><b>Leyendo la rendición…</b><button type="button" class="btn btn-sm btn-outline-secondary">Detener</button></div>
+      <span class="small text-body-secondary"
+        >JPG, PNG o WebP. Si la boleta llegó en PDF, sube un pantallazo.</span
+      >
+      <div class="reading">
+        <span class="dot" /><b>Leyendo la rendición…</b
+        ><button type="button" class="btn btn-sm btn-outline-secondary">Detener</button>
+      </div>
     </div>
 
     <section class="card">
@@ -90,7 +94,9 @@ const sel = ref('MSO-004')
         <div class="row g-3">
           <div class="col-12 col-sm-6 col-lg-4">
             <label class="label-caps" for="m-sol">Solicitante</label>
-            <select id="m-sol" class="form-select"><option>Juana Pérez</option></select>
+            <select id="m-sol" class="form-select">
+              <option>Juana Pérez</option>
+            </select>
           </div>
           <div class="col-12 col-sm-6 col-lg-4">
             <label class="label-caps" for="m-nro">Nº rendición</label>
@@ -114,25 +120,31 @@ const sel = ref('MSO-004')
         <div class="sum">
           <span><b>Suma de gastos </b>$ 70.389</span>
           <span><b>Formulario </b>$ 70.389</span>
-          <span class="chip chip-ok">Cuadra</span>
-          <span class="chip chip-bad">Diferencia $ 1.200</span>
+          <AppChip estado="Cuadra" />
+          <AppChip tono="bad">Diferencia $ 1.200</AppChip>
         </div>
       </div>
     </section>
 
     <div class="kpis">
-      <div class="kpi"><small>Rendiciones</small><b>182</b></div>
-      <div class="kpi"><small>Total rendido</small><b>$ 4.502.417</b></div>
-      <div class="kpi"><small>Pendiente de pago</small><b>$ 156.490</b></div>
-      <div class="kpi"><small>Sin exportar a Excel</small><b>7</b></div>
+      <KpiTile etiqueta="Rendiciones" :valor="182" />
+      <KpiTile etiqueta="Total rendido" valor="$ 4.502.417" />
+      <KpiTile etiqueta="Pendiente de pago" valor="$ 156.490" />
+      <KpiTile etiqueta="Sin exportar a Excel" :valor="7" />
     </div>
 
     <div class="table-wrap">
       <table class="table table-hover table-click">
         <thead>
           <tr>
-            <th>Folio</th><th>Fecha</th><th>Solicitante</th><th>Nº</th>
-            <th class="n">Total</th><th class="n">Pagado</th><th class="n">Por pagar</th><th>Estado</th>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Solicitante</th>
+            <th>Nº</th>
+            <th class="n">Total</th>
+            <th class="n">Pagado</th>
+            <th class="n">Por pagar</th>
+            <th>Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -150,7 +162,7 @@ const sel = ref('MSO-004')
             <td class="n">{{ f.total }}</td>
             <td class="n">{{ f.pagado }}</td>
             <td class="n" :class="{ pos: f.porPagar !== '—' }">{{ f.porPagar }}</td>
-            <td><span :class="['chip', 'chip-' + f.estado[0]]">{{ f.estado[1] }}</span></td>
+            <td><AppChip :estado="f.estado" /></td>
           </tr>
         </tbody>
       </table>
@@ -168,15 +180,21 @@ const sel = ref('MSO-004')
           <button type="button" class="btn btn-primary" disabled>Deshabilitado</button>
         </div>
         <div class="d-flex flex-wrap gap-2">
-          <span v-for="[t, c] in chips" :key="c" :class="['chip', 'chip-' + t]">{{ c }}</span>
+          <AppChip v-for="e in estados" :key="e" :estado="e" />
         </div>
       </div>
     </section>
 
-    <div class="alert alert-success mb-0">Rendición Nº 12 enviada por $ 70.389. Tesorería la revisará.</div>
-    <div class="alert alert-warning mb-0"><b>Revisa esto:</b> la boleta 4471 no está en el formulario.</div>
+    <div class="alert alert-success mb-0">
+      Rendición Nº 12 enviada por $ 70.389. Tesorería la revisará.
+    </div>
+    <div class="alert alert-warning mb-0">
+      <b>Revisa esto:</b> la boleta 4471 no está en el formulario.
+    </div>
     <div class="alert alert-danger mb-0">No se pudo leer la rendición. Intenta de nuevo.</div>
-    <div class="alert alert-primary mb-0">Se encontraron 3 documento(s) y se armaron 3 línea(s).</div>
+    <div class="alert alert-primary mb-0">
+      Se encontraron 3 documento(s) y se armaron 3 línea(s).
+    </div>
 
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
       <div v-for="f in filas" :key="f.folio" class="col">
@@ -184,7 +202,7 @@ const sel = ref('MSO-004')
           <div class="card-body d-flex flex-column gap-1">
             <div class="d-flex justify-content-between align-items-baseline gap-2">
               <b>Nº {{ f.nro }} · {{ f.fecha }}</b>
-              <span :class="['chip', 'chip-' + f.estado[0]]">{{ f.estado[1] }}</span>
+              <AppChip :estado="f.estado" />
             </div>
             <div class="amt">{{ f.total }}</div>
             <div class="small text-body-secondary">{{ f.folio }} · 2 respaldo(s)</div>
@@ -193,6 +211,13 @@ const sel = ref('MSO-004')
       </div>
     </div>
 
-    <div class="card empty-state">No hay rendiciones esperando aprobación.</div>
-  </main>
+    <EmptyState>No hay rendiciones esperando aprobación.</EmptyState>
+    <div class="thumbs">
+      <figure>
+        <img :src="imagenDemo" alt="Boleta de ejemplo" @click="zoom = imagenDemo" />
+        <button type="button" class="thumb-quitar" aria-label="Quitar foto">×</button>
+      </figure>
+    </div>
+    <AppLightbox v-model="zoom" />
+  </div>
 </template>

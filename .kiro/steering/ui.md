@@ -35,7 +35,7 @@ La referencia visual es la maqueta `CLAUDE/app/rendiciones-heca.html`. La primer
 | `.scroll > table` | `table-responsive` + `table table-sm`, encabezados 11px mayúsculas, `td.n` mono alineado a la derecha con `tabular-nums`. |
 | `table.edit` | `LineasTable`: inputs `form-control-sm` dentro de celdas. En móvil, una tarjeta por línea. |
 | `.drop` | `FotoDrop`: zona punteada; botones "Tomar foto" (`capture="environment"`) y "Elegir fotos". |
-| `.thumbs` | miniaturas 96×120 con botón × y zoom a `Lightbox`. |
+| `.thumbs` | miniaturas 96×120 con botón × y zoom a `AppLightbox`. |
 | `.kpis` | `KpiTile` (etiqueta mayúscula + monto mono 18px). |
 | `.cards` / `.card` | `RendicionCard` en grilla `row-cols-1 row-cols-md-2 row-cols-lg-3`. |
 | `.msg.ok/warn/bad/info` | `alert` con variantes subtle. |

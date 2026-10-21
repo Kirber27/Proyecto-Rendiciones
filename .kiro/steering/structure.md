@@ -43,7 +43,7 @@ Proyecto-Rendiciones/
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
 │   ├── composables/              useConfirm, useToast, useSignedUrl, useImageTiles…
 │   ├── components/
-│   │   ├── ui/                   AppChip, KpiTile, EmptyState, Lightbox, ConfirmInline, MoneyInput
+│   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, ConfirmInline, MoneyInput
 │   │   ├── layout/               AppHeader, AppTabs, ThemeToggle
 │   │   └── rendicion/            FotoDrop, RendicionEditor, LineasTable, CuadreTotales, Timeline, RendicionCard
 │   ├── views/                    una por pantalla (LoginView, RendirView, CarpetasView, PorAprobarView,
