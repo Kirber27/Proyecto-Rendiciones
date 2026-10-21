@@ -2,10 +2,14 @@
 // Página de muestra del tema (solo desarrollo): sirve para comparar con CLAUDE/app/rendiciones-heca.html
 // en claro y oscuro. Datos ficticios.
 import { ref } from 'vue'
+import RendicionEditor from '@/components/rendicion/RendicionEditor.vue'
 import AppChip from '@/components/ui/AppChip.vue'
 import AppLightbox from '@/components/ui/AppLightbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import KpiTile from '@/components/ui/KpiTile.vue'
+import { borradorDemo, catalogosDemo } from '@/dev/catalogosDemo'
+import { validarRendicion } from '@/domain/rendicion'
+import type { ModoEditor } from '@/types/rendicion'
 
 const zoom = ref<string | null>(null)
 const imagenDemo =
@@ -13,6 +17,22 @@ const imagenDemo =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600"><rect width="100%" height="100%" fill="#e6eefa"/><text x="50%" y="50%" font-family="sans-serif" font-size="28" text-anchor="middle" fill="#1f5fbf">Boleta de ejemplo</text></svg>',
   )
+
+// Editor de rendición con el caso DHE-042
+const modo = ref<ModoEditor>('persona')
+const borrador = ref(borradorDemo())
+const problemas = ref<string[]>([])
+const fotosDemo = ref([{ url: imagenDemo, quitable: true }])
+function validar() {
+  problemas.value = validarRendicion(borrador.value, {
+    esTesoreria: modo.value !== 'persona',
+    personasActivas: catalogosDemo.personas.map((p) => p.id),
+  })
+}
+function reiniciar() {
+  borrador.value = borradorDemo()
+  problemas.value = []
+}
 
 const estados = [
   'Aprobada',
@@ -70,6 +90,54 @@ const sel = ref('MSO-004')
         prueba con el selector de arriba a la derecha.
       </p>
     </div>
+
+    <section class="d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <h2 class="me-auto mb-0">Editor de rendición (DHE-042)</h2>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Modo del editor">
+          <button
+            v-for="m in ['persona', 'aprobar', 'libro'] as const"
+            :key="m"
+            type="button"
+            class="btn"
+            :class="modo === m ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="modo = m"
+          >
+            {{ m }}
+          </button>
+        </div>
+      </div>
+      <RendicionEditor
+        v-model="borrador"
+        :modo="modo"
+        :catalogos="catalogosDemo"
+        :fotos="fotosDemo"
+        :problemas="problemas"
+        @quitar-foto="fotosDemo.splice($event, 1)"
+      >
+        <template #acciones>
+          <button
+            type="button"
+            class="btn btn-lg"
+            :class="modo === 'aprobar' ? 'btn-success' : 'btn-primary'"
+            @click="validar"
+          >
+            {{
+              {
+                persona: 'Enviar rendición',
+                aprobar: 'Aprobar e ingresar',
+                libro: 'Guardar cambios',
+              }[modo]
+            }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary" @click="reiniciar">
+            Reiniciar demo
+          </button>
+        </template>
+      </RendicionEditor>
+    </section>
+
+    <hr />
 
     <div class="steps">
       <div><b>1. Sube las fotos</b>Formulario completo y legible, más boletas y facturas.</div>

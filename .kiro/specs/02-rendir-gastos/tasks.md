@@ -6,9 +6,10 @@ Requiere: 01 completo (auth, catálogos, esquema, storage).
   - `validarRendicion(borrador, { esTesoreria, personasActivas })`, `limpiarRendicion()` y `lineaVacia()` en `src/domain/rendicion.ts`; tipos `BorradorRendicion`, `LineaBorrador`, `RendicionPayload` en `src/types/rendicion.ts`.
   - Tests: falta Nº, línea sin monto, no cuadra, tesorería sin subcuenta.
 
-- [ ] **2.2 Componentes del editor** _(R3.1–R3.5)_
+- [x] **2.2 Componentes del editor** _(R3.1–R3.5)_
   - `MoneyInput`, `DatosFormulario`, `LineasTable` (tabla + tarjetas móviles), `CuadreTotales`, `RespaldosGrid`, `RendicionEditor` con slot de acciones.
   - Probar en `/_estilos` con un borrador de ejemplo (DHE-042: ISP, boleta 2026101400444231, $70.389, "CDA IMP ADEOR 07").
+  - Hecho: catálogos por props (`types/catalogos.ts`); demo con `src/dev/catalogosDemo.ts` (personas ficticias) hasta la 1.9.
 
 - [ ] **2.3 FotoDrop + useImageTiles** _(R1.1–R1.3, R2.2)_
   - Selector, cámara, drag&drop, miniaturas con quitar y zoom.

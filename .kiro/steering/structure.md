@@ -49,7 +49,8 @@ Proyecto-Rendiciones/
 │   ├── views/                    una por pantalla (LoginView, RendirView, CarpetasView, PorAprobarView,
 │   │                             LibroView, PersonasView, BancoView, PerfilesView)
 │   ├── router/index.ts
-│   └── types/                    tipos de dominio (Linea, Rendicion, Pago, …)
+│   ├── types/                    tipos de dominio (rendicion, catalogos, roles, …)
+│   └── dev/                      solo desarrollo: datos de demo (catálogos con personas ficticias)
 └── tests/                        e2e futuros
 ```
 

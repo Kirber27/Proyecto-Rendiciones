@@ -85,3 +85,13 @@ export interface RendicionPayload {
   total_formulario: number | null
   lineas: LineaPayload[]
 }
+
+/** Modo del editor: persona (Rendir gastos), aprobar (Por aprobar), libro (edición en el libro). */
+export type ModoEditor = 'persona' | 'aprobar' | 'libro'
+
+/** Foto de respaldo para mostrar: URL local (blob:) o firmada de Storage. */
+export interface Respaldo {
+  url: string
+  /** Si se puede quitar (fotos nuevas aún no enviadas). */
+  quitable?: boolean
+}
