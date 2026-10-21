@@ -1,0 +1,64 @@
+# Stack técnico
+
+## Frontend
+
+| Pieza | Elección | Notas |
+| --- | --- | --- |
+| Framework | **Vue 3** (Composition API, `<script setup lang="ts">`) | Sin Options API. |
+| Lenguaje | **TypeScript** (`strict: true`) | Tipos de la base generados con `supabase gen types`. |
+| Build | **Vite** | Alias `@` → `src/`. Variables de entorno con prefijo `VITE_`. |
+| Estilos | **SCSS** + **Bootstrap 5.3** (compilado desde fuente SCSS, no por CDN) | Variables de Bootstrap sobreescritas con los tokens del diseño (ver `ui.md`). Modo oscuro con `data-bs-theme`. |
+| Íconos | `bootstrap-icons` | |
+| JS de Bootstrap | Import selectivo (`Modal`, `Toast`, `Dropdown`, `Collapse`) envuelto en componentes Vue | Nada de jQuery. |
+| Estado | **Pinia** (setup stores) | Un store por dominio. |
+| Rutas | **Vue Router 4** | Guards por función (`meta.roles`). |
+| Validación | **zod** | Para la respuesta de la IA, formularios y payloads de RPC. |
+| Excel | **SheetJS** (`xlsx`, instalado desde el tarball oficial `cdn.sheetjs.com`, no la versión vieja de npm) | Leer cartolas y exportar libro. Carga diferida (`import()`). |
+| PDF | **jsPDF** + `jspdf-autotable` | Reporte por rendición. Carga diferida. |
+| Fuentes | IBM Plex Sans + IBM Plex Mono (`@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono`) | Self-hosted, sin Google Fonts en runtime. |
+| Tests | **Vitest** + `@vue/test-utils` | La lógica de dominio (`src/domain/`) se testea siempre. |
+| Calidad | ESLint (flat config, `eslint-plugin-vue`, `typescript-eslint`) + Prettier | `npm run lint` y `npm run typecheck` deben pasar. |
+
+## Backend: Supabase
+
+| Pieza | Uso |
+| --- | --- |
+| **Postgres** | Todo el modelo de datos (ver `data-model.md`). Migraciones SQL versionadas en `supabase/migrations/`. |
+| **RLS** | Activado en **todas** las tablas. El acceso real a datos lo dan las políticas, no la UI. |
+| **RPC (funciones SQL)** | Toda transición de estado (enviar, aprobar, observar, rechazar, anular, eliminar, registrar pago, conciliar) pasa por una función `security definer` que valida la función del usuario y escribe la línea de tiempo en la misma transacción. |
+| **Auth** | Login por correo con código/enlace (OTP). Solo pueden entrar correos registrados en `personas` (registro abierto desactivado; alta vía invitación o hook). Microsoft (Azure AD) como proveedor opcional futuro, porque Heca usa M365. |
+| **Storage** | Bucket privado `respaldos` para fotos. Se muestran con URLs firmadas de corta duración. |
+| **Edge Functions** (Deno) | `leer-rendicion`: recibe las imágenes, llama a la API de Claude con visión y devuelve el JSON validado. La API key de Anthropic **solo** vive como secreto de la función. |
+| **Realtime** | Contador de "Por aprobar" y refresco de carpetas. |
+
+## Lectura con IA
+
+- Proveedor: API de Anthropic (Claude), modelo configurable por secreto `ANTHROPIC_MODEL`. Antes de implementar, consultar la referencia actual de la API (skill `claude-api`) para el id de modelo y el formato de imágenes.
+- El prompt y las reglas de lectura se portan de `buildPrompt()` del prototipo (ver `business-rules.md` §Lectura).
+- Los recortes ampliados (cuadrantes / mitades) se generan en el **cliente** con `<canvas>` antes de enviar (porta `prepImages()`).
+- Límite de uso por usuario (tabla `lecturas_ia`) para controlar costo.
+
+## Entornos y secretos
+
+- `.env.local` (no se commitea): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+- Secretos de Edge Functions (`supabase secrets set`): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
+- La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y funciones.
+- Desarrollo local con `supabase start` (Docker). Producción en Supabase Cloud; frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
+
+## Comandos esperados
+
+```bash
+npm run dev          # Vite
+npm run build        # vue-tsc --noEmit && vite build
+npm run test         # vitest
+npm run lint         # eslint .
+npm run typecheck    # vue-tsc --noEmit
+npm run db:types     # supabase gen types typescript --local > src/lib/database.types.ts
+npm run db:reset     # supabase db reset (migraciones + seed)
+```
+
+## Restricciones
+
+- No usar `alert/confirm/prompt` nativos: confirmaciones en línea o modal de Bootstrap.
+- Las librerías pesadas (xlsx, jspdf) se cargan con `import()` solo cuando se usan.
+- Mobile first: el solicitante usa la app desde el celular. Tablas anchas con scroll horizontal propio.

@@ -1,0 +1,12 @@
+# 08 · Perfiles — Diseño
+
+- `domain/personas.ts`: `sugerirCodigo(nombre, usados)` (porta el del prototipo: inicial + 2 letras del apellido; si está usado, prueba variar la 3ª letra A–Z), `validarPersonaNueva(...)`. Tests.
+- RPC (migración `0014_rpc_perfiles.sql`, todas `es_admin()`):
+  - `guardar_persona(p jsonb)` — alta/edición (nombre, correo, código).
+  - `asignar_rol(persona_id, rol)` — en transacción: si `rol = 'tesorero'` degrada al actual; si deja 0 administradores → `raise 'ultimo_admin'`.
+  - `eliminar_persona(id)` / `restaurar_persona(id)` — soft delete; `user_id = null` al eliminar.
+  - `vincular_cuenta(user_id, persona_id)`.
+  - `listar_cuentas()` — `auth.users` (id, email, last_sign_in_at) + persona vinculada; `security definer` porque `auth.users` no es accesible al cliente.
+- Invitaciones (opcional): Edge Function `invitar-persona` con service role → `auth.admin.inviteUserByEmail`.
+
+UI: `PerfilesView` → tarjetas de funciones · tabla de personas con edición en línea (guardar al `change`, toast "Correo guardado.") · `details` eliminadas · `FormPersonaNueva` · `details` cuentas.
