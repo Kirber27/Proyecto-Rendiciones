@@ -1,0 +1,61 @@
+// Ajustes de modo oscuro que Bootstrap 5.3 no cubre con sus variables *-dark:
+// los colores de tema sólidos (botones, checks, badges) se compilan con el valor claro.
+
+:root {
+  --app-surface: #{$surface};
+  --app-accent-ink: #{$accent-ink};
+}
+
+[data-bs-theme='dark'] {
+  color-scheme: dark;
+  --app-surface: #{$surface-dark};
+  --app-accent-ink: #{$accent-ink-dark};
+
+  --bs-primary: #{$accent-dark};
+  --bs-primary-rgb: #{to-rgb($accent-dark)};
+  --bs-info: #{$accent-dark};
+  --bs-info-rgb: #{to-rgb($accent-dark)};
+  --bs-success: #{$ok-dark};
+  --bs-success-rgb: #{to-rgb($ok-dark)};
+  --bs-warning: #{$warn-dark};
+  --bs-warning-rgb: #{to-rgb($warn-dark)};
+  --bs-danger: #{$bad-dark};
+  --bs-danger-rgb: #{to-rgb($bad-dark)};
+  --bs-focus-ring-color: #{$accent-dark};
+
+  .btn-primary {
+    @include button-variant(
+      $accent-dark,
+      $accent-dark,
+      $color: $accent-ink-dark,
+      $hover-color: $accent-ink-dark,
+      $active-color: $accent-ink-dark,
+      $disabled-color: $accent-ink-dark
+    );
+  }
+  .btn-success {
+    @include button-variant(
+      $ok-dark,
+      $ok-dark,
+      $color: $surface-dark,
+      $hover-color: $surface-dark,
+      $active-color: $surface-dark,
+      $disabled-color: $surface-dark
+    );
+  }
+  .btn-outline-primary {
+    @include button-outline-variant($accent-dark, $color-hover: $accent-ink-dark);
+  }
+  .btn-outline-danger {
+    @include button-outline-variant($bad-dark, $color-hover: $surface-dark);
+  }
+
+  .form-check-input:checked {
+    background-color: $accent-dark;
+    border-color: $accent-dark;
+  }
+  .form-control:focus,
+  .form-select:focus {
+    border-color: $accent-dark;
+  }
+}

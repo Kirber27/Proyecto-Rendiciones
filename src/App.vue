@@ -1,10 +1,8 @@
 <script setup lang="ts">
-const titulo = 'Rendiciones Heca'
+// Temporal hasta la tarea 1.3 (router y layout): muestra la página de estilos.
+import EstilosView from '@/views/EstilosView.vue'
 </script>
 
 <template>
-  <main>
-    <h1>{{ titulo }}</h1>
-    <p>POE-GLO-FIN-003 · Rendición de gastos</p>
-  </main>
+  <EstilosView />
 </template>

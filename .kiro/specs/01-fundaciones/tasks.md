@@ -9,7 +9,7 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - `.gitignore` (node_modules, dist, .env*, supabase/.temp) y `.env.example`.
   - Verificar: `npm run dev` muestra la página por defecto; `build`, `lint`, `test` pasan.
 
-- [ ] **1.2 Tema SCSS + Bootstrap** _(R2.1, R2.2, R2.3)_
+- [x] **1.2 Tema SCSS + Bootstrap** _(R2.1, R2.2, R2.3)_
   - `_tokens.scss`, `_bootstrap-vars.scss`, `_dark.scss`, `_components.scss`, `main.scss`.
   - Fuentes IBM Plex vía `@fontsource`.
   - `ThemeToggle` + composable `useTheme`.
