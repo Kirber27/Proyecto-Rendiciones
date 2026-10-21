@@ -30,6 +30,7 @@ Proyecto-Rendiciones/
 │   │   └── main.scss             orden de imports
 │   ├── lib/
 │   │   ├── supabase.ts           cliente único
+│   │   ├── imagenes.ts           canvas: reducir y recortar fotos
 │   │   └── database.types.ts     generado, no editar a mano
 │   ├── domain/                   lógica pura, sin Vue ni Supabase, 100% testeable
 │   │   ├── formato.ts            norm, tr, raw, num, miles, clp, fdate, parseDate, dnum, semana, mes
@@ -37,11 +38,12 @@ Proyecto-Rendiciones/
 │   │   ├── asignacion.ts         FIFO de pagos (porta alloc())
 │   │   ├── conciliacion.ts       propuestas banco (porta proposals())
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
+│   │   ├── recortes.ts           plan de recortes para la lectura IA
 │   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador
 │   │   └── __tests__/
 │   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
-│   ├── composables/              useConfirm, useToast, useSignedUrl, useImageTiles…
+│   ├── composables/              useTheme, useMediaQuery, useConfirm, useSignedUrl…
 │   ├── components/
 │   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, ConfirmInline, MoneyInput
 │   │   ├── layout/               AppHeader, AppTabs, ThemeToggle

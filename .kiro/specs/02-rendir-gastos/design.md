@@ -41,9 +41,9 @@ A diferencia del prototipo (que guardaba nombres), el borrador referencia **ids*
 - `RespuestaLecturaSchema` (zod): todos los campos opcionales/tolerantes (`z.coerce`), `lineas` array.
 - `aBorrador(respuesta, ctx)` → `Borrador` (porta el mapeo de `leer()`: `raw()` contra listas, empresa por defecto HGI, C.C. de la empresa, cuenta sugerida, `num()`, `parseDate()`, limpieza de `numero`). Testeado con respuestas fijas.
 
-## Recortes (`composables/useImageTiles.ts`)
+## Recortes (`domain/recortes.ts` + `lib/imagenes.ts`)
 
-Porta `prepImages(files, max)`: `createImageBitmap(file, { imageOrientation: 'from-image' })`, canvas, JPEG 0.9, lado máx 2400. Además **reduce la foto completa** a lado máx 2400 / JPEG 0.85 para no exceder límites de tamaño. Devuelve `{ imagenes: Blob[], nota: string }`.
+Porta `prepImages(files, max)`. Lo puro (cuántos recortes, cajas, nota) en `domain/recortes.ts`; el canvas en `lib/imagenes.ts → prepararImagenes()`: `createImageBitmap(file, { imageOrientation: 'from-image' })`, canvas, JPEG 0.9, lado máx 2400. Además **reduce la foto completa** a lado máx 2400 / JPEG 0.85 para no exceder límites de tamaño. Devuelve `{ imagenes: Blob[], nota: string }`.
 
 ## Edge Function `leer-rendicion`
 

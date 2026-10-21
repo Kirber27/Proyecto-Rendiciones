@@ -2,6 +2,7 @@
 // Página de muestra del tema (solo desarrollo): sirve para comparar con CLAUDE/app/rendiciones-heca.html
 // en claro y oscuro. Datos ficticios.
 import { ref } from 'vue'
+import FotoDrop from '@/components/rendicion/FotoDrop.vue'
 import RendicionEditor from '@/components/rendicion/RendicionEditor.vue'
 import AppChip from '@/components/ui/AppChip.vue'
 import AppLightbox from '@/components/ui/AppLightbox.vue'
@@ -9,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import KpiTile from '@/components/ui/KpiTile.vue'
 import { borradorDemo, catalogosDemo } from '@/dev/catalogosDemo'
 import { validarRendicion } from '@/domain/rendicion'
+import { prepararImagenes } from '@/lib/imagenes'
 import type { ModoEditor } from '@/types/rendicion'
 
 const zoom = ref<string | null>(null)
@@ -17,6 +19,29 @@ const imagenDemo =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600"><rect width="100%" height="100%" fill="#e6eefa"/><text x="50%" y="50%" font-family="sans-serif" font-size="28" text-anchor="middle" fill="#1f5fbf">Boleta de ejemplo</text></svg>',
   )
+
+// Fotos y recortes para la lectura IA (máximo 20 imágenes por lectura)
+const fotosSubidas = ref<{ file: File; url: string }[]>([])
+const recortes = ref<{ urls: string[]; nota: string } | null>(null)
+const preparando = ref(false)
+function agregarFotos(archivos: File[]) {
+  fotosSubidas.value.push(...archivos.map((file) => ({ file, url: URL.createObjectURL(file) })))
+}
+function quitarFoto(i: number) {
+  URL.revokeObjectURL(fotosSubidas.value[i]!.url)
+  fotosSubidas.value.splice(i, 1)
+  recortes.value = null
+}
+async function generarRecortes() {
+  preparando.value = true
+  recortes.value?.urls.forEach((u) => URL.revokeObjectURL(u))
+  const r = await prepararImagenes(
+    fotosSubidas.value.map((f) => f.file),
+    20,
+  )
+  recortes.value = { urls: r.imagenes.map((b) => URL.createObjectURL(b)), nota: r.nota }
+  preparando.value = false
+}
 
 // Editor de rendición con el caso DHE-042
 const modo = ref<ModoEditor>('persona')
@@ -135,6 +160,39 @@ const sel = ref('MSO-004')
           </button>
         </template>
       </RendicionEditor>
+    </section>
+
+    <hr />
+
+    <section class="d-flex flex-column gap-3">
+      <h2 class="mb-0">Fotos y recortes para la IA</h2>
+      <FotoDrop
+        :fotos="fotosSubidas.map((f) => ({ url: f.url, quitable: true }))"
+        :leyendo="preparando"
+        @agregar="agregarFotos"
+        @quitar="quitarFoto"
+      />
+      <div class="d-flex gap-2">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :disabled="!fotosSubidas.length || preparando"
+          @click="generarRecortes"
+        >
+          Generar recortes
+        </button>
+      </div>
+      <div v-if="recortes" class="card">
+        <div class="card-body d-flex flex-column gap-2">
+          <b>{{ recortes.urls.length }} imagen(es) para enviar</b>
+          <div class="thumbs">
+            <figure v-for="(u, i) in recortes.urls" :key="u">
+              <img :src="u" :alt="`Imagen ${i + 1}`" @click="zoom = u" />
+            </figure>
+          </div>
+          <pre class="small mb-0" style="white-space: pre-wrap">{{ recortes.nota }}</pre>
+        </div>
+      </div>
     </section>
 
     <hr />

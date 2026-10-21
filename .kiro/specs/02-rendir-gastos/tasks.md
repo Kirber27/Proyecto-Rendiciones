@@ -11,9 +11,10 @@ Requiere: 01 completo (auth, catálogos, esquema, storage).
   - Probar en `/_estilos` con un borrador de ejemplo (DHE-042: ISP, boleta 2026101400444231, $70.389, "CDA IMP ADEOR 07").
   - Hecho: catálogos por props (`types/catalogos.ts`); demo con `src/dev/catalogosDemo.ts` (personas ficticias) hasta la 1.9.
 
-- [ ] **2.3 FotoDrop + useImageTiles** _(R1.1–R1.3, R2.2)_
+- [x] **2.3 FotoDrop + recortes** _(R1.1–R1.3, R2.2)_
   - Selector, cámara, drag&drop, miniaturas con quitar y zoom.
-  - Composable de recortes con test unitario de las cajas generadas (4 cuadrantes / 2 mitades).
+  - Recortes: `domain/recortes.ts` (plan, cajas, nota; con tests) + `lib/imagenes.ts` (`prepararImagenes`, `reducirImagen` con canvas).
+  - Verificado en Chrome real con `ejemplo_formulario_DHE-042.jpg`: 1 foto → 5 imágenes, 3 → 15, 5 → 15, 8 → 8.
 
 - [ ] **2.4 Dominio de lectura** _(R2.4, R2.6, R2.7)_
   - `construirPrompt`, `RespuestaLecturaSchema`, `aBorrador`, mapa de errores.
