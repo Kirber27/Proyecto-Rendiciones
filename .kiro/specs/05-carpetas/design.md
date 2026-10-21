@@ -3,14 +3,18 @@
 ## Dominio (`src/domain/carpeta.ts`)
 
 ```ts
-itemsCarpeta(rendiciones, eventos, asignacion) → ItemCarpeta[]
-  // { id, folio, nro, fecha, total, respaldos, eventos: Evento[], actual: string, grupo: GrupoCarpeta }
-grupoDe(item) → 'En revisión' | 'Observadas o rechazadas' | 'Por pagar' | 'Pagadas' | 'Eliminadas'
+itemsCarpeta(rendiciones: RendicionCarpeta[], pagos: Map<id, EstadoPagoRendicion>) → ItemCarpeta[]
+  // { id, etiqueta (folio o "Envío 042"), nro, fecha, total, respaldos, actual, grupo, eventos, puedeCorregir, notaTesoreria }
+grupoDe(actual) → 'En revisión' | 'Observadas o rechazadas' | 'Por pagar' | 'Pagadas' | 'Eliminadas' | 'Otras'
+gruposDeCarpeta(items) · filtrarCarpeta(items, seleccion) · ordenarCarpetas(carpetas, busqueda)
 ```
 
-- Eventos = `rendicion_eventos` + evento de pago calculado (si aprobada: Pagada con fecha del último pago, o Pago parcial / Pendiente de pago).
-- Estado actual = último evento que no sea "Reenviada" (`estadoActual`), salvo que la rendición esté aprobada → estado de pago.
-- Histórico: evento "Ingresada (historial)" + estado de pago.
+- Eventos = `rendicion_eventos` **ordenados por fecha** (los sin fecha al final) + evento de pago calculado si está aprobada: Pagada ("Pagado $X", fecha del último pago), Pago parcial ("Pagado $X · falta $Y") o Pendiente de pago ("Falta $Y").
+- Estado actual = **estado guardado** de la rendición (no se recorre la lista de eventos como en el prototipo, que mostraba "Observada" en una rendición ya reenviada):
+  - `en_revision` → "Aprobación anulada" si `aprobacion_anulada`, "Reenviada" si el último evento es Reenviada, si no "En revisión".
+  - `observada` / `rechazada` / `eliminada` → su nombre.
+  - `aprobada` → estado de pago; si no tiene monto: "Aprobada" (App) o "Ingresada (historial)" (Histórico), grupo "Otras".
+- Histórico: el importador crea el evento "Ingresada (historial)"; después se suma el evento de pago.
 
 ## Servicios
 

@@ -7,6 +7,25 @@ export const TIPOS_DOCUMENTO = [
 ] as const
 export type TipoDocumento = (typeof TIPOS_DOCUMENTO)[number]
 
+/** Estado guardado de una rendición (enum `estado_rendicion` de la base). */
+export const ESTADOS_RENDICION = [
+  'en_revision',
+  'observada',
+  'rechazada',
+  'aprobada',
+  'eliminada',
+] as const
+export type EstadoRendicion = (typeof ESTADOS_RENDICION)[number]
+
+/** Evento de la línea de tiempo (fila de `rendicion_eventos`). */
+export interface EventoRendicion {
+  /** Enviada, Reenviada, Aprobada, Observada, Rechazada, Aprobación anulada, Eliminada, … */
+  evento: string
+  nota: string | null
+  /** Fecha/hora ISO o YYYY-MM-DD; "" si no se conoce. */
+  fecha: string
+}
+
 /** Un monto puede venir como texto mientras se edita ("70.389") o como número desde la base. */
 export type Monto = number | string | null | undefined
 

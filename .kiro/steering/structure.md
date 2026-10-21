@@ -42,6 +42,7 @@ Proyecto-Rendiciones/
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
 │   │   ├── exportar.ts           filas del Excel de tesorería (hoja "Rendiciones")
 │   │   ├── reporte.ts            contenido del reporte PDF por rendición
+│   │   ├── carpeta.ts            estado actual, grupos, línea de tiempo e índice de carpetas
 │   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
 │   │   ├── recortes.ts           plan de recortes para la lectura IA
 │   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador

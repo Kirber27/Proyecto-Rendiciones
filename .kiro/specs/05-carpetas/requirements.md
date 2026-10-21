@@ -26,3 +26,4 @@ Referencia: `vMias`, `carpeta`, `carpetaItems`, `itemCard`, `eventosEnvio`, `est
 | Aprobada + Pendiente de pago / Pago parcial | Por pagar |
 | Pagada | Pagadas |
 | Eliminada | Eliminadas |
+| Aprobada sin monto, Ingresada (historial) sin monto | Otras (solo se muestra si hay) |
