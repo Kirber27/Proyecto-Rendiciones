@@ -16,12 +16,14 @@ Requiere: 01 completo (auth, catálogos, esquema, storage).
   - Recortes: `domain/recortes.ts` (plan, cajas, nota; con tests) + `lib/imagenes.ts` (`prepararImagenes`, `reducirImagen` con canvas).
   - Verificado en Chrome real con `ejemplo_formulario_DHE-042.jpg`: 1 foto → 5 imágenes, 3 → 15, 5 → 15, 8 → 8.
 
-- [ ] **2.4 Dominio de lectura** _(R2.4, R2.6, R2.7)_
-  - `construirPrompt`, `RespuestaLecturaSchema`, `aBorrador`, mapa de errores.
+- [x] **2.4 Dominio de lectura** _(R2.4, R2.6, R2.7)_
+  - `construirPrompt`, `RespuestaLecturaSchema`, `extraerRespuesta`, `ErrorLectura` en `supabase/functions/_shared/lectura.ts` (compartido, alias `@shared`); `aBorrador`, `montoATexto`, `mensajeErrorLectura` en `src/domain/lectura.ts`.
+  - Test de paridad: el prompt es idéntico al `buildPrompt()` del prototipo (se lee del archivo original).
   - Tests con 2–3 respuestas JSON de ejemplo (con formulario, sin formulario, solicitante desconocido).
 
 - [ ] **2.5 Edge Function `leer-rendicion`** _(R2.3, R2.8)_
   - Consultar la skill `claude-api` antes de escribir la llamada (modelo, formato de imágenes, límites).
+  - Crear `supabase/functions/deno.json` con import map `"zod": "npm:zod@4"` para que `_shared/lectura.ts` funcione en Deno.
   - Auth, cupo diario, prompt desde la base, llamada, validación, registro en `lecturas_ia`, CORS.
   - `supabase functions serve` local + prueba con `CLAUDE/datos/original/ejemplo_formulario_DHE-042.jpg`.
 

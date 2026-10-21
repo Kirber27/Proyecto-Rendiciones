@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Framework | **Vue 3** (Composition API, `<script setup lang="ts">`) | Sin Options API. |
 | Lenguaje | **TypeScript 6** (`strict: true`; sin `baseUrl`, deprecado en TS 6) | Tipos de la base generados con `supabase gen types`. |
-| Build | **Vite 8** | Alias `@` → `src/`. Variables de entorno con prefijo `VITE_`. |
+| Build | **Vite 8** | Alias `@` → `src/` y `@shared` → `supabase/functions/_shared/` (código puro compartido con las Edge Functions). Variables de entorno con prefijo `VITE_`. |
 | Estilos | **SCSS** + **Bootstrap 5.3** (compilado desde fuente SCSS, no por CDN) | Variables de Bootstrap sobreescritas con los tokens del diseño (ver `ui.md`). Modo oscuro con `data-bs-theme`. |
 | Íconos | `bootstrap-icons` | |
 | JS de Bootstrap | Import selectivo (`Modal`, `Toast`, `Dropdown`, `Collapse`) envuelto en componentes Vue | Nada de jQuery. |

@@ -35,9 +35,12 @@ Persistencia del borrador: `watch(borrador)` → `localStorage('rendir:borrador'
 
 A diferencia del prototipo (que guardaba nombres), el borrador referencia **ids**: `personaId` (uuid), `empresaId`, y en cada línea `subcuentaId`, `cuentaId`, `centroCostoId`. La lectura IA devuelve nombres y `aBorrador()` los resuelve contra los catálogos con `raw()`/`norm()`. `limpiarRendicion()` produce el payload en snake_case para las RPC.
 
-## Dominio (`src/domain/lectura.ts`)
+## Dominio de lectura (compartido + frontend)
 
-- `construirPrompt({ subcuentas, personas, empresas, notaImagenes })` → string (porta `buildPrompt` literal).
+`supabase/functions/_shared/lectura.ts` (puro; lo importan la Edge Function y el frontend vía alias `@shared`): `construirPrompt(listas, nota)`, `RespuestaLecturaSchema`, `extraerRespuesta(salida)`, `ErrorLectura` y `CodigoErrorLectura`.
+
+`src/domain/lectura.ts` (solo frontend):
+
 - `RespuestaLecturaSchema` (zod): todos los campos opcionales/tolerantes (`z.coerce`), `lineas` array.
 - `aBorrador(respuesta, ctx)` → `Borrador` (porta el mapeo de `leer()`: `raw()` contra listas, empresa por defecto HGI, C.C. de la empresa, cuenta sugerida, `num()`, `parseDate()`, limpieza de `numero`). Testeado con respuestas fijas.
 
@@ -57,9 +60,9 @@ Body: { imagenes: [{ media_type, data(base64) }], nota: string }
 
 1. Verifica JWT (`supabase.auth.getUser`), obtiene persona y rol.
 2. Revisa cupo diario en `lecturas_ia`.
-3. Construye el prompt **en el servidor** (las listas se leen de la base; así el cliente no puede alterarlo). El prompt vive en `supabase/functions/_shared/prompt.ts`, compartido con el test de dominio.
+3. Construye el prompt **en el servidor** (las listas se leen de la base; así el cliente no puede alterarlo) con `construirPrompt` de `_shared/lectura.ts`.
 4. Llama a la API de Messages de Anthropic con las imágenes como bloques `image` base64 + texto. Pide respuesta solo JSON. Modelo desde `ANTHROPIC_MODEL`.
-5. Extrae el JSON (tolerando ```json fences), valida con zod; si falla → `invalid_json`.
+5. `extraerRespuesta()` saca el JSON (tolera ```json y texto alrededor) y lo valida con zod; si falla → `invalid_json`.
 6. Inserta fila en `lecturas_ia` (tokens, ok/error).
 7. CORS para el origen del frontend.
 

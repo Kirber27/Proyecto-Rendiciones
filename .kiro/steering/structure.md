@@ -15,6 +15,7 @@ Proyecto-Rendiciones/
 │   ├── migrations/               SQL versionado: AAAAMMDDHHMMSS_nombre.sql
 │   ├── seed.sql                  catálogos (empresas, cuentas, subcuentas, C.C., bancos, personas)
 │   └── functions/
+│       ├── _shared/              código puro compartido con el frontend (alias @shared): lectura.ts
 │       └── leer-rendicion/       Edge Function de lectura con IA
 ├── scripts/
 │   └── importar-historial.ts     carga única del historial 2026 (service role, idempotente)
