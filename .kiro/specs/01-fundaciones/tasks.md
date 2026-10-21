@@ -20,7 +20,7 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - Rutas con `meta.roles` y vistas placeholder (EmptyState "En construcción").
   - Componentes ui base: `AppChip`, `EmptyState`, `KpiTile`, `AppLightbox`.
 
-- [ ] **1.4 Dominio base portado** _(R7.1)_
+- [x] **1.4 Dominio base portado** _(R7.1)_
   - `src/domain/formato.ts` y `src/domain/rendicion.ts` (totales).
   - Tests con casos reales: `num("70.389")=70389`, `num("1.234,50")=1234.5`, `clp(-500)="-$ 500"`, `parseDate(46000)`, `parseDate("14-10-2026")`, `semana("2026-10-07")="Del 05 al 09"`, `norm("  Rodrigo  Ibañez ")="rodrigo ibanez"`.
 

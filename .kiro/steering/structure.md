@@ -32,8 +32,8 @@ Proyecto-Rendiciones/
 │   │   ├── supabase.ts           cliente único
 │   │   └── database.types.ts     generado, no editar a mano
 │   ├── domain/                   lógica pura, sin Vue ni Supabase, 100% testeable
-│   │   ├── formato.ts            norm, tr, num, clp, fdate, parseDate, semana, MESES
-│   │   ├── rendicion.ts          lineTotal, rendTotal, validar, limpiar, folio, sugerirCodigo
+│   │   ├── formato.ts            norm, tr, raw, num, miles, clp, fdate, parseDate, dnum, semana, mes
+│   │   ├── rendicion.ts          totalLinea, sumaLineas, totalRendicion, cuadra, validar, limpiar, folio
 │   │   ├── asignacion.ts         FIFO de pagos (porta alloc())
 │   │   ├── conciliacion.ts       propuestas banco (porta proposals())
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
