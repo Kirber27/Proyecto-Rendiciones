@@ -32,6 +32,7 @@ Proyecto-Rendiciones/
 │   ├── lib/
 │   │   ├── supabase.ts           cliente único
 │   │   ├── imagenes.ts           canvas: reducir y recortar fotos
+│   │   ├── descargar.ts          descargar un Blob generado (Excel, PDF)
 │   │   └── database.types.ts     generado, no editar a mano
 │   ├── domain/                   lógica pura, sin Vue ni Supabase, 100% testeable
 │   │   ├── formato.ts            norm, tr, raw, num, miles, clp, fdate, parseDate, dnum, semana, mes
@@ -39,10 +40,12 @@ Proyecto-Rendiciones/
 │   │   ├── asignacion.ts         FIFO de pagos (porta alloc())
 │   │   ├── conciliacion.ts       propuestas banco (porta proposals())
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
+│   │   ├── exportar.ts           filas del Excel de tesorería (hoja "Rendiciones")
+│   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
 │   │   ├── recortes.ts           plan de recortes para la lectura IA
 │   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador
 │   │   └── __tests__/
-│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad
+│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS)
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
 │   ├── composables/              useTheme, useMediaQuery, useConfirm, useSignedUrl…
 │   ├── components/

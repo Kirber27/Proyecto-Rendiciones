@@ -108,7 +108,7 @@ Columnas idénticas a la hoja "Rendiciones" del Excel original (con sus espacios
 
 - Una fila por línea. `Detalle` = subcuenta. `Concepto` = detalle · proveedor · "Doc Nº".
 - En no-facturas todo el monto va a "Monto Exento".
-- El pago (banco, fecha del último pago, suma de pagos vinculados) va **solo en la última línea** de cada rendición.
+- El pago (banco, fecha del último pago, suma de pagos vinculados) va **solo en la última línea** de cada rendición. "Último pago" = el de fecha más reciente (el prototipo tomaba el último en orden de carga).
 - Fechas con formato `dd-mm-yyyy`, montos `#,##0`. Opción "solo nuevas" marca `exportada = true`.
 
 ## Reporte PDF (`reportePDF`)
