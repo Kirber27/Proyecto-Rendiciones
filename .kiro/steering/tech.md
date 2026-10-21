@@ -5,13 +5,13 @@
 | Pieza | Elección | Notas |
 | --- | --- | --- |
 | Framework | **Vue 3** (Composition API, `<script setup lang="ts">`) | Sin Options API. |
-| Lenguaje | **TypeScript** (`strict: true`) | Tipos de la base generados con `supabase gen types`. |
-| Build | **Vite** | Alias `@` → `src/`. Variables de entorno con prefijo `VITE_`. |
+| Lenguaje | **TypeScript 6** (`strict: true`; sin `baseUrl`, deprecado en TS 6) | Tipos de la base generados con `supabase gen types`. |
+| Build | **Vite 8** | Alias `@` → `src/`. Variables de entorno con prefijo `VITE_`. |
 | Estilos | **SCSS** + **Bootstrap 5.3** (compilado desde fuente SCSS, no por CDN) | Variables de Bootstrap sobreescritas con los tokens del diseño (ver `ui.md`). Modo oscuro con `data-bs-theme`. |
 | Íconos | `bootstrap-icons` | |
 | JS de Bootstrap | Import selectivo (`Modal`, `Toast`, `Dropdown`, `Collapse`) envuelto en componentes Vue | Nada de jQuery. |
-| Estado | **Pinia** (setup stores) | Un store por dominio. |
-| Rutas | **Vue Router 4** | Guards por función (`meta.roles`). |
+| Estado | **Pinia 4** (setup stores) | Un store por dominio. |
+| Rutas | **Vue Router 5** | Guards por función (`meta.roles`). |
 | Validación | **zod** | Para la respuesta de la IA, formularios y payloads de RPC. |
 | Excel | **SheetJS** (`xlsx`, instalado desde el tarball oficial `cdn.sheetjs.com`, no la versión vieja de npm) | Leer cartolas y exportar libro. Carga diferida (`import()`). |
 | PDF | **jsPDF** + `jspdf-autotable` | Reporte por rendición. Carga diferida. |
@@ -49,10 +49,11 @@
 
 ```bash
 npm run dev          # Vite
-npm run build        # vue-tsc --noEmit && vite build
-npm run test         # vitest
-npm run lint         # eslint .
-npm run typecheck    # vue-tsc --noEmit
+npm run build        # typecheck + vite build en paralelo (falla si hay errores de tipos)
+npm run test         # vitest run  (test:watch para modo watch)
+npm run lint         # eslint . --fix  (lint:check sin corregir)
+npm run typecheck    # vue-tsc --build
+npm run format       # prettier --write src/
 npm run db:types     # supabase gen types typescript --local > src/lib/database.types.ts
 npm run db:reset     # supabase db reset (migraciones + seed)
 ```

@@ -1,0 +1,30 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencias y build
+node_modules
+dist
+dist-ssr
+coverage
+*.tsbuildinfo
+
+# Entorno y secretos (solo .env.example se versiona)
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase local
+supabase/.temp
+supabase/.branches
+supabase/functions/**/.env
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?

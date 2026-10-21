@@ -2,7 +2,7 @@
 
 Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run build`) y con tests en verde.
 
-- [ ] **1.1 Scaffold del proyecto** _(R1.1, R1.2, R1.3)_
+- [x] **1.1 Scaffold del proyecto** _(R1.1, R1.2, R1.3)_
   - Crear proyecto Vite `vue-ts` en la raíz (sin pisar `CLAUDE/`, `.kiro/`, `README.md`).
   - Instalar dependencias base (ver design). Configurar alias `@`, `tsconfig` strict.
   - ESLint flat + Prettier, scripts `lint`, `typecheck`, `test`.
