@@ -2,8 +2,8 @@
 
 ## Dominio
 
-- `domain/cartola.ts`: `detectarEncabezados(rows)`, `adivinarColumnas(headers)` (regex `GUESS` del prototipo), `construirMovimientos(data, map)` (porta `buildMovs`). Tests con una cartola CSV de ejemplo **ficticia** (no usar datos reales en el repo de tests).
-- `domain/conciliacion.ts`: `proponer({ movimientos, rendiciones, pagos, asignacion })` → `{ propuestas, sinAsignar, pendientes }` (porta `proposals()`, incluido el subconjunto de hasta 12 por máscara de bits) y `candidatas(mov, pendientes)` para el selector manual. Tests para cada uno de los 3 niveles y para "no reutilizar".
+- `domain/cartola.ts`: `detectarEncabezados(filas)`, `adivinarColumnas(encabezados)` (regex `GUESS` del prototipo como `PATRONES_COLUMNA`), `construirMovimientos(datos, mapa)` (porta `buildMovs`), `resumenMovimientos`, `separarDuplicados` (por fecha + montos + glosa normalizada, contando repeticiones). Tests con cartolas **ficticias** (no usar datos reales en el repo de tests).
+- `domain/conciliacion.ts`: `proponer({ movimientos, rendiciones, pagos, asignacion, nombres })` → `{ propuestas, sinAsignar, pendientes }` (porta `proposals()`, incluido el subconjunto de hasta 12 por máscara de bits; `nombres` = mapa personaId → nombre para buscarlo en la glosa) y `candidatas(mov, pendientes, asignacion, nombres)` para el selector manual. Cada propuesta trae `marcada` (las "solo por monto" van sin marcar). Tests para cada uno de los 3 niveles, "no reutilizar" y paridad.
 
 ## Datos
 
