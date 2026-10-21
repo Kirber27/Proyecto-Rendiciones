@@ -4,7 +4,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 
 | # | Spec | Depende de | Estado |
 | --- | --- | --- | --- |
-| 01 | [Fundaciones](01-fundaciones/) — scaffold, tema, Supabase, auth, esquema, RLS, seed, historial | — | 🟡 En curso (1.1–1.4 ✔) |
+| 01 | [Fundaciones](01-fundaciones/) — scaffold, tema, Supabase, auth, esquema, RLS, seed, historial | — | 🟡 En curso (1.1–1.4 ✔ · 1.5+ ⏸ espera Supabase Cloud) |
 | 02 | [Rendir gastos](02-rendir-gastos/) — fotos, lectura IA, editor, envío | 01 | ⬜ |
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | ⬜ |
 | 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | ⬜ |
@@ -28,6 +28,10 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 - [ ] **9.6** Exportar a Excel desde el prototipo (artifact) los datos creados después del 09-10-2026 y cargarlos (o decidir corte).
 - [ ] **9.7** Prueba con usuarios reales (1 tesorero + 2 solicitantes) desde celular, con `ejemplo_formulario_DHE-042.jpg`.
 - [ ] **9.8** Backups: activar PITR o export programado; documentar restauración.
+
+## Deuda / bloqueos
+
+- **1.5 en adelante (Supabase)**: en pausa hasta que exista el proyecto en Supabase Cloud. Se necesita: `project ref`, URL, `anon key` (para `.env.local`) y acceso a la `service_role key` solo para scripts locales (importar historial). Mientras tanto se avanza con tareas que no dependen de la base.
 
 ## Decisiones abiertas
 

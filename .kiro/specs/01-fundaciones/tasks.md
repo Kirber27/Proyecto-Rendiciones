@@ -24,8 +24,8 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - `src/domain/formato.ts` y `src/domain/rendicion.ts` (totales).
   - Tests con casos reales: `num("70.389")=70389`, `num("1.234,50")=1234.5`, `clp(-500)="-$ 500"`, `parseDate(46000)`, `parseDate("14-10-2026")`, `semana("2026-10-07")="Del 05 al 09"`, `norm("  Rodrigo  Ibañez ")="rodrigo ibanez"`.
 
-- [ ] **1.5 Supabase local + migraciones de esquema** _(R5.1)_
-  - `supabase init`, `supabase start`.
+- [ ] **1.5 Supabase + migraciones de esquema** _(R5.1)_ — ⏸ **DEUDA: espera el proyecto en Supabase Cloud** (lo crea el usuario desde la web)
+  - `supabase init`, `supabase link --project-ref <ref>`, `supabase db push`.
   - Migraciones 0001–0006 de design (enums, catálogos, personas, rendiciones, pagos/banco, lecturas_ia).
   - `npm run db:types` genera `src/lib/database.types.ts`.
 
@@ -41,11 +41,11 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - `lib/supabase.ts`, `stores/auth.ts`, `LoginView` (correo → código de 6 dígitos).
   - RPC `correo_habilitado`, hook/trigger de restricción y vínculo cuenta → persona.
   - Guard del router; botón "Salir" en el header; pestañas según rol.
-  - Probar con 3 usuarios locales (admin, tesorero, solicitante) usando Inbucket/Mailpit de `supabase start`.
+  - Probar con 3 usuarios de prueba (admin, tesorero, solicitante) en el proyecto de Supabase Cloud.
 
 - [ ] **1.9 Store de catálogos** _(soporte de R5)_
   - `stores/catalogos.ts` con carga única y helpers de opciones / cuenta sugerida.
 
 - [ ] **1.10 Importador del historial 2026** _(R6.1–R6.3)_
   - `scripts/importar-historial.ts` idempotente.
-  - Correr en local, comparar totales con los esperados, correr dos veces y verificar que no duplica.
+  - Correr contra el proyecto de desarrollo, comparar totales con los esperados, correr dos veces y verificar que no duplica.

@@ -43,7 +43,7 @@
 - `.env.local` (no se commitea): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 - Secretos de Edge Functions (`supabase secrets set`): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
 - La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y funciones.
-- Desarrollo local con `supabase start` (Docker). Producción en Supabase Cloud; frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
+- **Sin Docker local**: se trabaja contra un proyecto en **Supabase Cloud** (creado desde la web). Migraciones con `supabase link` + `supabase db push`. Si más adelante se separan entornos, un proyecto de desarrollo y otro de producción. Frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
 
 ## Comandos esperados
 
@@ -54,8 +54,8 @@ npm run test         # vitest run  (test:watch para modo watch)
 npm run lint         # eslint . --fix  (lint:check sin corregir)
 npm run typecheck    # vue-tsc --build
 npm run format       # prettier --write src/
-npm run db:types     # supabase gen types typescript --local > src/lib/database.types.ts
-npm run db:reset     # supabase db reset (migraciones + seed)
+npm run db:types     # supabase gen types typescript --linked > src/lib/database.types.ts
+npm run db:push      # supabase db push (aplica migraciones pendientes al proyecto vinculado)
 ```
 
 ## Restricciones
