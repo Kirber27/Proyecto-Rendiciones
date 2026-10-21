@@ -22,9 +22,47 @@ const original = {
 }
 /* eslint-enable */
 
-const montos = ['70.389', '$ 70.389', '1.234,50', '12,5', '1,234', '-1.000', '', ' 0 ', 'CLP 1.500.000', '3.5', 'x', 0, 42, -7.5, null, undefined]
-const fechas = ['2026-10-14', '2026-1-5', '14-10-2026', '14/10/26', '5.3.2026', '2026/10/14', 46000, 45658.5, 'hoy', '', null, new Date(2026, 9, 14)]
-const textos = ['  Rodrigo  Ibañez ', 'ÁLVARO MARTÍNEZ', 'Ana Jocelyn  Schnell', 'Arleen Cedeño', '', null, 123]
+const montos = [
+  '70.389',
+  '$ 70.389',
+  '1.234,50',
+  '12,5',
+  '1,234',
+  '-1.000',
+  '',
+  ' 0 ',
+  'CLP 1.500.000',
+  '3.5',
+  'x',
+  0,
+  42,
+  -7.5,
+  null,
+  undefined,
+]
+const fechas = [
+  '2026-10-14',
+  '2026-1-5',
+  '14-10-2026',
+  '14/10/26',
+  '5.3.2026',
+  '2026/10/14',
+  46000,
+  45658.5,
+  'hoy',
+  '',
+  null,
+  new Date(2026, 9, 14),
+]
+const textos = [
+  '  Rodrigo  Ibañez ',
+  'ÁLVARO MARTÍNEZ',
+  'Ana Jocelyn  Schnell',
+  'Arleen Cedeño',
+  '',
+  null,
+  123,
+]
 
 describe('paridad con el prototipo', () => {
   it.each(montos)('num(%j)', (v) => expect(num(v)).toBe(original.num(v)))

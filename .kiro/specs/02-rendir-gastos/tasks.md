@@ -2,8 +2,8 @@
 
 Requiere: 01 completo (auth, catálogos, esquema, storage).
 
-- [ ] **2.1 Dominio de rendición: validar y limpiar** _(R4.1)_
-  - `validarRendicion(borrador, { esTesoreria, personas })` y `limpiarRendicion()` en `src/domain/rendicion.ts`.
+- [x] **2.1 Dominio de rendición: validar y limpiar** _(R4.1)_
+  - `validarRendicion(borrador, { esTesoreria, personasActivas })`, `limpiarRendicion()` y `lineaVacia()` en `src/domain/rendicion.ts`; tipos `BorradorRendicion`, `LineaBorrador`, `RendicionPayload` en `src/types/rendicion.ts`.
   - Tests: falta Nº, línea sin monto, no cuadra, tesorería sin subcuenta.
 
 - [ ] **2.2 Componentes del editor** _(R3.1–R3.5)_

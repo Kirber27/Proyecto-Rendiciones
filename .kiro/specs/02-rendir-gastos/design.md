@@ -22,7 +22,7 @@ RendirView
 
 ```ts
 fotos: { id: string; file: File; url: string }[]
-borrador: Borrador | null          // tipo de dominio con montos como string mientras se edita
+borrador: BorradorRendicion | null // montos como texto mientras se edita; persona y catálogos por id
 leyendo: boolean; abort: AbortController | null
 errorLectura: { tipo: 'info'|'warn'|'bad'; texto: string } | null
 mensajeEnvio: ...
@@ -30,6 +30,10 @@ acciones: agregarFotos, quitarFoto, leer, cancelarLectura, descartar, enviar, ca
 ```
 
 Persistencia del borrador: `watch(borrador)` → `localStorage('rendir:borrador')` con try/catch (sin fotos).
+
+## Borrador con ids
+
+A diferencia del prototipo (que guardaba nombres), el borrador referencia **ids**: `personaId` (uuid), `empresaId`, y en cada línea `subcuentaId`, `cuentaId`, `centroCostoId`. La lectura IA devuelve nombres y `aBorrador()` los resuelve contra los catálogos con `raw()`/`norm()`. `limpiarRendicion()` produce el payload en snake_case para las RPC.
 
 ## Dominio (`src/domain/lectura.ts`)
 
