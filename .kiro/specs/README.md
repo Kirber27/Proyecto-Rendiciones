@@ -7,7 +7,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 01 | [Fundaciones](01-fundaciones/) — scaffold, tema, Supabase, auth, esquema, RLS, seed, historial | — | 🟡 En curso (1.1–1.4 ✔ · 1.5+ ⏸ espera Supabase Cloud) |
 | 02 | [Rendir gastos](02-rendir-gastos/) — fotos, lectura IA, editor, envío | 01 | 🟡 En curso (2.1–2.4 ✔ · 2.5+ ⏸ espera Supabase) |
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | ⬜ |
-| 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 En curso (4.1 ✔ · 4.6 parcial) |
+| 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 En curso (4.1 ✔ · 4.6 y 4.7 parciales) |
 | 05 | [Carpetas](05-carpetas/) — mis rendiciones y carpetas por persona | 04 | ⬜ |
 | 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | 🟡 En curso (6.1 ✔) |
 | 07 | [Banco y conciliación](07-banco-conciliacion/) — cartolas y propuestas | 06 | 🟡 En curso (7.1–7.2 ✔) |

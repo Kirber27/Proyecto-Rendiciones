@@ -15,7 +15,7 @@ Solo entran rendiciones `aprobada`. Nota: en el historial el correlativo de Davi
 
 `src/domain/exportar.ts`: `filasExcel(rendiciones, pagos, catalogos)` → `(string|number|null)[][]` (pura, testeada). La escritura con SheetJS va en `services/excel.ts` con `import('xlsx')`.
 
-`src/domain/reporte.ts`: arma el modelo del reporte (filas, totales, meta) — puro. `services/pdf.ts` dibuja con jsPDF + autotable y agrega las fotos (descargadas con URL firmada → canvas → JPEG 0.82, lado 1800).
+`src/domain/reporte.ts`: `modeloReporte(entrada)` arma el contenido (datos, filas, totales, notas, nombre de archivo) — puro. `services/pdf.ts → generarReportePdf(modelo, fotos, { cargarImagen, onProgreso })` dibuja con jsPDF + autotable (tabla de gastos con anchos fijos para montos y Nº doc.) y agrega una página por foto (URL firmada → canvas → JPEG 0.82, lado 1800). El cargador de fotos es inyectable para tests.
 
 ## Store `useLibroStore`
 

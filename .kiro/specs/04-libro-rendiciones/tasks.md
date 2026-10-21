@@ -14,4 +14,7 @@ Requiere: 01 (historial importado), 03.
   - [x] `domain/exportar.ts` (`filasExcel`, `seleccionarParaExportar`, encabezados/formatos/anchos) + `services/excel.ts` (`construirLibroExcel`, `descargarExcel`) + `lib/descargar.ts`.
   - [x] Tests: encabezados exactos, rendición de 3 líneas con pago en la última, archivo .xlsx leído de vuelta, paridad con el prototipo en las 612 filas del historial.
   - [ ] Botones "Excel (nuevas)/(todas)" en LibroView y `marcar_exportadas` tras descargar (requiere Supabase, 4.3 y RPC).
-- [ ] **4.7 Reporte PDF** _(R3.3)_ — `jspdf` + `jspdf-autotable`, fotos con URL firmada, numeración de páginas. Probar con DHE-042 y una rendición histórica sin fotos.
+- [ ] **4.7 Reporte PDF** _(R3.3)_ — 🟡 parcial
+  - [x] jsPDF 4.2 + jspdf-autotable 5.0; `domain/reporte.ts` (`modeloReporte`, `nombreArchivoReporte`) + `services/pdf.ts` (`generarReportePdf`, `descargarReportePdf`, cargador de fotos inyectable).
+  - [x] Tests: modelo (datos, filas, totales, notas, nombre), PDF sin fotos, paginación con 60 líneas, foto que falla, foto real DHE-042 (página por respaldo). Revisado visualmente.
+  - [ ] Botón "Descargar reporte PDF" en el detalle del libro con progreso, usando URLs firmadas de Storage (verificar CORS con `crossOrigin = 'anonymous'`). Requiere Supabase y 4.4.

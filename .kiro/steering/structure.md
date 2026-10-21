@@ -41,11 +41,12 @@ Proyecto-Rendiciones/
 │   │   ├── conciliacion.ts       propuestas banco (porta proposals())
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
 │   │   ├── exportar.ts           filas del Excel de tesorería (hoja "Rendiciones")
+│   │   ├── reporte.ts            contenido del reporte PDF por rendición
 │   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
 │   │   ├── recortes.ts           plan de recortes para la lectura IA
 │   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador
 │   │   └── __tests__/
-│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS)
+│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS), pdf.ts (jsPDF)
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
 │   ├── composables/              useTheme, useMediaQuery, useConfirm, useSignedUrl…
 │   ├── components/
