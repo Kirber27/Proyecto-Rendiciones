@@ -66,7 +66,7 @@ Por persona:
 1. Se ordenan sus rendiciones aprobadas por fecha (y Nº) y sus pagos por fecha.
 2. Primero se aplican los pagos **vinculados explícitamente** a una rendición (hasta cubrir su total).
 3. Lo que sobra (anticipos, pagos agrupados, sobrantes) entra a un **pozo** que se aplica a las rendiciones pendientes **desde la más antigua**.
-4. Estado por rendición: `Sin monto` (total ≤ 0,5) · `Pagada` (pagado ≥ total − 1) · `Pago parcial` · `Pendiente de pago`. Se guarda también la fecha del último pago.
+4. Estado por rendición: `Sin monto` (total ≤ 0,5) · `Pagada` (pagado ≥ total − 1) · `Pago parcial` · `Pendiente de pago`. Se guarda también la fecha del último pago. Mejora sobre el prototipo: si una rendición se pagó solo con el pozo (el prototipo dejaba la fecha vacía), se usa la fecha del último pago que alimentó el pozo (aproximación; nunca cambia una fecha ya conocida).
 5. Por persona: **rendido**, **pagado** (suma de todos sus pagos, incluidas devoluciones negativas), **saldo = rendido − pagado** (positivo: la empresa le debe; negativo: pendiente por rendir), anticipos, Nº máximo y **faltantes del correlativo** (números de 1..máx que no existen).
 
 Tipos de pago: `Pago`, `Anticipo`, `No genera pago`, `Devolución de la persona` (monto negativo).

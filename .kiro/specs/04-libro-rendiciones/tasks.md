@@ -2,7 +2,9 @@
 
 Requiere: 01 (historial importado), 03.
 
-- [ ] **4.1 `asignacion.ts` (FIFO) + tests** _(R1.1, R1.2)_ — incluye test de saldos del historial.
+- [x] **4.1 `asignacion.ts` (FIFO) + tests** _(R1.1, R1.2)_ — incluye test de saldos del historial.
+  - `asignarPagos(rendiciones, pagos)`, `estadoPago`, `faltantesCorrelativo`; tipos en `src/types/pagos.ts`.
+  - Paridad con `alloc()` del prototipo en 200 escenarios aleatorios y en el historial 2026 (totales y 6 saldos documentados).
 - [ ] **4.2 Store `useLibroStore` + servicio de pagos (lectura)** _(R1)_
 - [ ] **4.3 LibroView: KPIs, filtros, buscador, tabla paginada** _(R2.1–R2.3)_
 - [ ] **4.4 Detalle + edición en el libro** _(R2.4, R2.5)_ — RPC `editar_rendicion`.

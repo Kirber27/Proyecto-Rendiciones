@@ -7,7 +7,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 01 | [Fundaciones](01-fundaciones/) — scaffold, tema, Supabase, auth, esquema, RLS, seed, historial | — | 🟡 En curso (1.1–1.4 ✔ · 1.5+ ⏸ espera Supabase Cloud) |
 | 02 | [Rendir gastos](02-rendir-gastos/) — fotos, lectura IA, editor, envío | 01 | 🟡 En curso (2.1–2.4 ✔ · 2.5+ ⏸ espera Supabase) |
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | ⬜ |
-| 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | ⬜ |
+| 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 En curso (4.1 ✔) |
 | 05 | [Carpetas](05-carpetas/) — mis rendiciones y carpetas por persona | 04 | ⬜ |
 | 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | ⬜ |
 | 07 | [Banco y conciliación](07-banco-conciliacion/) — cartolas y propuestas | 06 | ⬜ |
@@ -31,7 +31,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 
 ## Deuda / bloqueos
 
-- **1.5 en adelante (Supabase)**: en pausa hasta que exista el proyecto en Supabase Cloud. Se necesita: `project ref`, URL, `anon key` (para `.env.local`) y acceso a la `service_role key` solo para scripts locales (importar historial). Mientras tanto se avanza con tareas que no dependen de la base.
+Ver **[DEUDA.md](DEUDA.md)**: bloqueos (proyecto en Supabase Cloud), código temporal a eliminar y pendientes técnicos.
 
 ## Decisiones abiertas
 
