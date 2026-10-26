@@ -2,13 +2,13 @@
 import { useRouter } from 'vue-router'
 import AppChip from '@/components/ui/AppChip.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePorAprobarStore } from '@/stores/porAprobar'
 import { NOMBRE_ROL } from '@/types/roles'
 import AppTabs from './AppTabs.vue'
 import ThemeToggle from './ThemeToggle.vue'
 
-defineProps<{ badges?: Record<string, number> }>()
-
 const auth = useAuthStore()
+const porAprobar = usePorAprobarStore()
 const router = useRouter()
 
 async function salir() {
@@ -24,7 +24,7 @@ async function salir() {
         <b>Rendiciones Heca</b>
         <small>POE-GLO-FIN-003 · RENDICIÓN DE GASTOS</small>
       </RouterLink>
-      <AppTabs :badges="badges" />
+      <AppTabs :badges="{ aprobar: porAprobar.cantidad }" />
       <div class="ms-auto d-flex align-items-center gap-2">
         <span class="small text-body-secondary d-none d-sm-inline">{{ auth.nombre }}</span>
         <AppChip v-if="auth.persona" tono="info" class="d-none d-md-inline-block">

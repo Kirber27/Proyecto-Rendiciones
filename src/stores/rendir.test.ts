@@ -12,6 +12,11 @@ vi.mock('@/lib/imagenes', () => ({
   prepararImagenes: vi.fn(async (fotos: Blob[]) => ({ imagenes: fotos, nota: 'nota' })),
 }))
 vi.mock('@/services/catalogos', () => ({ leerCatalogos: vi.fn(async () => catalogosDemo) }))
+const abrirRendicion = vi.hoisted(() => vi.fn())
+vi.mock('@/services/aprobacion', () => ({
+  abrirRendicion,
+  urlsFirmadas: vi.fn(async () => new Map()),
+}))
 const enviarRendicion = vi.hoisted(() => vi.fn())
 vi.mock('@/services/rendiciones', () => ({ enviarRendicion }))
 
@@ -181,5 +186,39 @@ describe('useRendirStore', () => {
       'Rendición Nº 7 enviada por $ 15.000. Tesorería la revisará; sigue su estado en Mis rendiciones.',
     )
     expect(localStorage.getItem('rendir:borrador:u-1')).toBeNull()
+  })
+
+  it('corregir y reenviar: carga la observada con sus fotos y el motivo; reenvía con el mismo id', async () => {
+    sesion('solicitante')
+    abrirRendicion.mockResolvedValue({
+      borrador: {
+        id: 'r-9',
+        personaId: 'p-1',
+        nro: '9',
+        fecha: '2026-10-01',
+        empresaId: 1,
+        fondo: '',
+        totalFormulario: '',
+        lineas: [{ exento: '5.000' }],
+        dudas: [],
+        respaldos: ['p-1/r-9/a.jpg'],
+      },
+      version: 'v',
+      eventos: [],
+      fotos: [{ path: 'p-1/r-9/a.jpg', url: 'https://firmada/a.jpg' }],
+      notaTesoreria: 'Falta la boleta del taxi',
+    })
+    const r = useRendirStore()
+    await r.cargarParaCorregir('r-9')
+    expect(r.borrador!.id).toBe('r-9')
+    expect(r.fotosGuardadas).toEqual([{ path: 'p-1/r-9/a.jpg', url: 'https://firmada/a.jpg' }])
+    expect(r.avisoLectura!.texto).toBe(
+      'Tesorería pidió: «Falta la boleta del taxi». Corrige y vuelve a enviar.',
+    )
+    enviarRendicion.mockResolvedValueOnce({ id: 'r-9', nro: 9, total: 5000, reenvio: true })
+    await r.enviar()
+    expect(enviarRendicion.mock.calls[0]![2].rendicionId).toBe('r-9')
+    expect(r.avisoEnvio!.texto).toContain('Rendición Nº 9 reenviada por $ 5.000')
+    expect(r.fotosGuardadas).toEqual([])
   })
 })

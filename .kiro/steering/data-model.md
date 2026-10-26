@@ -68,6 +68,7 @@ rendiciones
   decidido_por      uuid → auth.users
   nota_tesoreria    text                   -- motivo de observación/rechazo
   exportada         bool not null default false
+  estado_previo     estado_rendicion       -- estado antes de eliminarla (para restaurar)
   obs               text                   -- notas internas / origen histórico
   creado_en         timestamptz default now()
 

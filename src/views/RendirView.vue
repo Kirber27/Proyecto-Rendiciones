@@ -23,9 +23,14 @@ onMounted(() => {
   rendir.recuperar()
 })
 
-const fotosEditor = computed(() =>
-  rendir.fotos.map((f) => ({ url: f.url, quitable: !rendir.leyendo })),
-)
+// Fotos ya guardadas (corrección de una observada) primero, sin quitar; luego las nuevas.
+const fotosEditor = computed(() => [
+  ...rendir.fotosGuardadas.map((f) => ({ url: f.url, quitable: false })),
+  ...rendir.fotos.map((f) => ({ url: f.url, quitable: !rendir.leyendo })),
+])
+function quitarDelEditor(indice: number) {
+  rendir.quitarFoto(indice - rendir.fotosGuardadas.length)
+}
 
 function agregarDesdeEditor(e: Event) {
   const input = e.target as HTMLInputElement
@@ -136,7 +141,7 @@ function descartar() {
         :fotos="fotosEditor"
         :solicitante-fijo="!!rendir.personaFija"
         :problemas="problemas"
-        @quitar-foto="rendir.quitarFoto"
+        @quitar-foto="quitarDelEditor"
       >
         <template #acciones>
           <button

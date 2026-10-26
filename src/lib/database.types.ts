@@ -234,6 +234,13 @@ export type Database = {
             referencedRelation: "rendiciones"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pago_rendiciones_rendicion_id_fkey"
+            columns: ["rendicion_id"]
+            isOneToOne: false
+            referencedRelation: "v_rendiciones"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pagos: {
@@ -378,6 +385,13 @@ export type Database = {
             referencedRelation: "rendiciones"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rendicion_eventos_rendicion_id_fkey"
+            columns: ["rendicion_id"]
+            isOneToOne: false
+            referencedRelation: "v_rendiciones"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rendicion_lineas: {
@@ -458,6 +472,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rendicion_lineas_rendicion_id_fkey"
+            columns: ["rendicion_id"]
+            isOneToOne: false
+            referencedRelation: "v_rendiciones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rendicion_lineas_subcuenta_id_fkey"
             columns: ["subcuenta_id"]
             isOneToOne: false
@@ -477,6 +498,7 @@ export type Database = {
           empresa_id: number | null
           enviado_en: string | null
           estado: Database["public"]["Enums"]["estado_rendicion"]
+          estado_previo: Database["public"]["Enums"]["estado_rendicion"] | null
           exportada: boolean
           fecha: string
           folio: string | null
@@ -500,6 +522,7 @@ export type Database = {
           empresa_id?: number | null
           enviado_en?: string | null
           estado?: Database["public"]["Enums"]["estado_rendicion"]
+          estado_previo?: Database["public"]["Enums"]["estado_rendicion"] | null
           exportada?: boolean
           fecha: string
           folio?: string | null
@@ -523,6 +546,7 @@ export type Database = {
           empresa_id?: number | null
           enviado_en?: string | null
           estado?: Database["public"]["Enums"]["estado_rendicion"]
+          estado_previo?: Database["public"]["Enums"]["estado_rendicion"] | null
           exportada?: boolean
           fecha?: string
           folio?: string | null
@@ -586,6 +610,13 @@ export type Database = {
             referencedRelation: "rendiciones"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "respaldos_rendicion_id_fkey"
+            columns: ["rendicion_id"]
+            isOneToOne: false
+            referencedRelation: "v_rendiciones"
+            referencedColumns: ["id"]
+          },
         ]
       }
       subcuentas: {
@@ -622,14 +653,143 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_rendiciones: {
+        Row: {
+          aprobacion_anulada: boolean | null
+          creado_en: string | null
+          creado_por: string | null
+          decidido_en: string | null
+          decidido_por: string | null
+          editado_en: string | null
+          empresa_id: number | null
+          empresa_nombre: string | null
+          enviado_en: string | null
+          estado: Database["public"]["Enums"]["estado_rendicion"] | null
+          exportada: boolean | null
+          fecha: string | null
+          folio: string | null
+          fondo: string | null
+          id: string | null
+          n_lineas: number | null
+          n_respaldos: number | null
+          nota_tesoreria: string | null
+          nro: number | null
+          obs: string | null
+          origen: Database["public"]["Enums"]["origen_registro"] | null
+          persona_codigo: string | null
+          persona_id: string | null
+          persona_nombre: string | null
+          total: number | null
+          total_formulario: number | null
+          ultimo_evento: string | null
+          ultimo_evento_en: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rendiciones_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rendiciones_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _clp: { Args: { n: number }; Returns: string }
       _exigir_admin: { Args: never; Returns: undefined }
+      _reemplazar_lineas: {
+        Args: { p_fecha: string; p_lineas: Json; p_rendicion_id: string }
+        Returns: undefined
+      }
+      _tomar_del_libro: {
+        Args: {
+          p_estados: Database["public"]["Enums"]["estado_rendicion"][]
+          p_id: string
+          p_version?: string
+        }
+        Returns: {
+          aprobacion_anulada: boolean
+          creado_en: string
+          creado_por: string | null
+          decidido_en: string | null
+          decidido_por: string | null
+          editado_en: string | null
+          empresa_id: number | null
+          enviado_en: string | null
+          estado: Database["public"]["Enums"]["estado_rendicion"]
+          estado_previo: Database["public"]["Enums"]["estado_rendicion"] | null
+          exportada: boolean
+          fecha: string
+          folio: string | null
+          fondo: string
+          id: string
+          nota_tesoreria: string | null
+          nro: number
+          obs: string
+          origen: Database["public"]["Enums"]["origen_registro"]
+          persona_id: string
+          total: number
+          total_formulario: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rendiciones"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _tomar_para_decidir: {
+        Args: { p_id: string; p_version: string }
+        Returns: {
+          aprobacion_anulada: boolean
+          creado_en: string
+          creado_por: string | null
+          decidido_en: string | null
+          decidido_por: string | null
+          editado_en: string | null
+          empresa_id: number | null
+          enviado_en: string | null
+          estado: Database["public"]["Enums"]["estado_rendicion"]
+          estado_previo: Database["public"]["Enums"]["estado_rendicion"] | null
+          exportada: boolean
+          fecha: string
+          folio: string | null
+          fondo: string
+          id: string
+          nota_tesoreria: string | null
+          nro: number
+          obs: string
+          origen: Database["public"]["Enums"]["origen_registro"]
+          persona_id: string
+          total: number
+          total_formulario: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rendiciones"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _vincular_por_correo: {
         Args: { p_persona_id: string }
         Returns: undefined
+      }
+      anular_aprobacion: {
+        Args: { p_id: string; p_nota?: string }
+        Returns: undefined
+      }
+      aprobar_rendicion: {
+        Args: { p: Json; p_id: string; p_version: string }
+        Returns: string
       }
       asignar_rol: {
         Args: {
@@ -638,10 +798,22 @@ export type Database = {
         }
         Returns: string
       }
+      editar_rendicion: {
+        Args: { p: Json; p_id: string; p_version: string }
+        Returns: string
+      }
       eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
+      eliminar_rendicion: {
+        Args: { p_id: string; p_nota?: string }
+        Returns: undefined
+      }
       enviar_rendicion: { Args: { p: Json }; Returns: string }
       es_admin: { Args: never; Returns: boolean }
       es_tesoreria: { Args: never; Returns: boolean }
+      generar_folio: {
+        Args: { p_nro: number; p_persona_id: string }
+        Returns: string
+      }
       guardar_persona: { Args: { p: Json }; Returns: string }
       hook_validar_correo: { Args: { event: Json }; Returns: Json }
       listar_cuentas: {
@@ -654,10 +826,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      marcar_exportadas: { Args: { p_ids: string[] }; Returns: number }
       mi_persona_id: { Args: never; Returns: string }
       mi_rol: { Args: never; Returns: Database["public"]["Enums"]["rol_app"] }
       normalizar: { Args: { t: string }; Returns: string }
+      observar_rendicion: {
+        Args: { p_id: string; p_nota: string; p_version: string }
+        Returns: undefined
+      }
+      rechazar_rendicion: {
+        Args: { p_id: string; p_nota: string; p_version: string }
+        Returns: undefined
+      }
       restaurar_persona: { Args: { p_persona_id: string }; Returns: undefined }
+      restaurar_rendicion: {
+        Args: { p_id: string }
+        Returns: Database["public"]["Enums"]["estado_rendicion"]
+      }
       vincular_cuenta: {
         Args: { p_persona_id: string; p_user_id: string }
         Returns: undefined

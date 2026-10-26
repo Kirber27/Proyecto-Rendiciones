@@ -10,6 +10,7 @@ import { lineaVacia } from '@/domain/rendicion'
 import { prepararImagenes } from '@/lib/imagenes'
 import { leerFotos, MAX_IMAGENES_LECTURA } from '@/services/lectura'
 import { enviarRendicion } from '@/services/rendiciones'
+import { abrirRendicion, urlsFirmadas } from '@/services/aprobacion'
 import { clp } from '@/domain/formato'
 import type { BorradorRendicion } from '@/types/rendicion'
 import { useAuthStore } from './auth'
@@ -33,6 +34,8 @@ export const useRendirStore = defineStore('rendir', () => {
   const catalogos = useCatalogosStore()
 
   const fotos = ref<FotoLocal[]>([])
+  /** Fotos ya guardadas en Storage (al corregir una rendición observada). */
+  const fotosGuardadas = ref<{ path: string; url: string }[]>([])
   const borrador = ref<BorradorRendicion | null>(null)
   const leyendo = ref(false)
   const avisoLectura = ref<Aviso | null>(null)
@@ -76,6 +79,7 @@ export const useRendirStore = defineStore('rendir', () => {
       const guardado = localStorage.getItem(CLAVE(uid))
       if (!guardado) return
       borrador.value = JSON.parse(guardado) as BorradorRendicion
+      void mostrarGuardadas(borrador.value.respaldos)
       avisoLectura.value = {
         tipo: 'info',
         texto:
@@ -84,6 +88,33 @@ export const useRendirStore = defineStore('rendir', () => {
     } catch {
       /* borrador ilegible: se ignora */
     }
+  }
+
+  async function mostrarGuardadas(paths: string[]) {
+    if (!paths.length) return
+    try {
+      const urls = await urlsFirmadas(paths)
+      fotosGuardadas.value = paths
+        .filter((p) => urls.has(p))
+        .map((p) => ({ path: p, url: urls.get(p)! }))
+    } catch {
+      /* sin conexión: se ven al volver a abrir */
+    }
+  }
+
+  // ---------- Corregir y reenviar (2.8) ----------
+  /** Abre una rendición observada (o en revisión) para corregirla y reenviarla. */
+  async function cargarParaCorregir(id: string) {
+    descartar()
+    const r = await abrirRendicion(id)
+    borrador.value = r.borrador
+    fotosGuardadas.value = r.fotos
+    avisoLectura.value = r.notaTesoreria
+      ? {
+          tipo: 'warning',
+          texto: `Tesorería pidió: «${r.notaTesoreria}». Corrige y vuelve a enviar.`,
+        }
+      : { tipo: 'info', texto: 'Corrige lo necesario y vuelve a enviar.' }
   }
 
   // ---------- Fotos ----------
@@ -175,6 +206,7 @@ export const useRendirStore = defineStore('rendir', () => {
         cancelarLectura()
         fotos.value.forEach((f) => URL.revokeObjectURL(f.url))
         fotos.value = []
+        fotosGuardadas.value = []
         silencio = true
         borrador.value = null
         silencio = false
@@ -190,6 +222,7 @@ export const useRendirStore = defineStore('rendir', () => {
     cancelarLectura()
     fotos.value.forEach((f) => URL.revokeObjectURL(f.url))
     fotos.value = []
+    fotosGuardadas.value = []
     borrador.value = null
     fotosLeidas.value = 0
     avisoLectura.value = null
@@ -228,6 +261,8 @@ export const useRendirStore = defineStore('rendir', () => {
 
   return {
     fotos,
+    fotosGuardadas,
+    cargarParaCorregir,
     borrador,
     leyendo,
     enviando,

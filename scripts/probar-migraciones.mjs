@@ -244,5 +244,93 @@ await como(extra, async () => {
   await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: cuenta sin persona no puede enviar', [envio({ id: '00000000-0000-4000-8000-000000000006' })])
 })
 
+// ---------- Por aprobar (spec 03) ----------
+const ids = { a: '00000000-0000-4000-8000-0000000000a1', b: '00000000-0000-4000-8000-0000000000b1', c: '00000000-0000-4000-8000-0000000000c1' }
+const envioRaul = (id, nro, lineas) =>
+  JSON.stringify({ id, persona_id: raulPersona, nro, fecha: '2026-10-21', empresa_id: 2, lineas, respaldos: [] })
+const conCuenta = [{ tipo: 'Boleta', exento: 1000, subcuenta_id: 8, cuenta_id: 2, centro_costo_id: 3 }]
+const sinCuenta = [{ tipo: 'Boleta', exento: 1000, subcuenta_id: 8 }]
+const version = async (id) => valor(`select editado_en::text from public.rendiciones where id = $1`, [id])
+await como(raul, async () => {
+  for (const [id, nro] of [[ids.a, 34], [ids.b, 34], [ids.c, 35]]) await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioRaul(id, nro, sinCuenta)])
+  await debeFallar(`select public.aprobar_rendicion('${ids.a}', '{"lineas": []}'::jsonb, null)`, 'aprobar: un solicitante no puede')
+  ok((await valor(`select count(*)::int from public.v_rendiciones`)) >= 3 && (await valor(`select count(*)::int from public.v_rendiciones where persona_id <> $1`, [raulPersona])) === 0, 'v_rendiciones: el solicitante solo ve lo suyo')
+  ok((await valor(`select n_lineas from public.v_rendiciones where id = $1`, [ids.a])) === 1, 'v_rendiciones: cuenta líneas')
+})
+await como(admin, async () => {
+  ok((await valor(`select ultimo_evento from public.v_rendiciones where id = $1`, [ids.a])) === 'Enviada', 'v_rendiciones: último evento')
+  await debeFallar(`select public.aprobar_rendicion('${ids.a}', $1::jsonb, null)`, 'aprobar: exige cuenta en cada línea', [JSON.stringify({ lineas: sinCuenta })])
+  const f1 = await valor(`select public.aprobar_rendicion($1, $2::jsonb, $3::timestamptz)`, [ids.a, JSON.stringify({ lineas: conCuenta, empresa_id: 2 }), await version(ids.a)])
+  ok(f1 === 'RDI-034', `aprobar: folio ${f1}`)
+  const r = await uno(`select estado::text, decidido_por from public.rendiciones where id = $1`, [ids.a])
+  ok(r.estado === 'aprobada' && r.decidido_por === admin, 'aprobar: queda aprobada y registra quién')
+  ok((await valor(`select nota from public.rendicion_eventos where rendicion_id = $1 and evento = 'Aprobada'`, [ids.a])) === 'Ingresada al libro como RDI-034', 'aprobar: evento con el folio')
+  await debeFallar(`select public.aprobar_rendicion('${ids.a}', $1::jsonb, null)`, 'aprobar: no dos veces', [JSON.stringify({ lineas: conCuenta })])
+  const f2 = await valor(`select public.aprobar_rendicion($1, $2::jsonb, null)`, [ids.b, JSON.stringify({ lineas: conCuenta })])
+  ok(/^RDI-034-[0-9a-f]{2}$/.test(f2), `aprobar: Nº repetido lleva sufijo (${f2})`)
+  await debeFallar(`select public.observar_rendicion('${ids.c}', '  ', null)`, 'observar: exige motivo')
+  const vieja = await version(ids.c)
+  await db.query(`select public.observar_rendicion($1, 'Falta la boleta del taxi', $2::timestamptz)`, [ids.c, vieja])
+  ok((await valor(`select nota_tesoreria from public.rendiciones where id = $1`, [ids.c])) === 'Falta la boleta del taxi', 'observar: guarda el motivo')
+})
+await como(raul, async () => {
+  await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioRaul(ids.c, 35, conCuenta)])
+  ok((await valor(`select estado::text from public.rendiciones where id = $1`, [ids.c])) === 'en_revision', 'observada → reenviada vuelve a revisión')
+})
+await como(admin, async () => {
+  ok((await valor(`select ultimo_evento from public.v_rendiciones where id = $1`, [ids.c])) === 'Reenviada', 'v_rendiciones: marca Reenviada')
+  await debeFallar(`select public.aprobar_rendicion('${ids.c}', $1::jsonb, '2000-01-01'::timestamptz)`, 'aprobar: versión vieja no pisa un reenvío', [JSON.stringify({ lineas: conCuenta })])
+  await db.query(`select public.rechazar_rendicion($1, '', null)`, [ids.c])
+  ok((await valor(`select nota_tesoreria from public.rendiciones where id = $1`, [ids.c])) === 'Rechazada por tesorería.', 'rechazar: motivo por defecto')
+})
+await como(raul, async () => {
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'rechazada no se puede reenviar', [envioRaul(ids.c, 35, conCuenta)])
+})
+
+// ---------- Libro (spec 04) ----------
+const conCuenta2 = [{ tipo: 'Boleta', exento: 2500, subcuenta_id: 8, cuenta_id: 2, centro_costo_id: 3 }, ...conCuenta]
+await como(raul, async () => {
+  await debeFallar(`select public.editar_rendicion('${ids.a}', $1::jsonb, null)`, 'editar: un solicitante no puede', [JSON.stringify({ lineas: conCuenta })])
+  await debeFallar(`select public.eliminar_rendicion('${ids.a}', null)`, 'eliminar: un solicitante no puede')
+  await debeFallar(`select public.marcar_exportadas(array['${ids.a}']::uuid[])`, 'marcar_exportadas: un solicitante no puede')
+})
+await db.query(`update public.rendiciones set origen = 'Histórico' where id = $1`, [r2])
+await como(admin, async () => {
+  const v = await version(ids.a)
+  await debeFallar(`select public.editar_rendicion('${ids.a}', $1::jsonb, null)`, 'editar: exige cuenta en cada línea', [JSON.stringify({ lineas: sinCuenta })])
+  const f = await valor(`select public.editar_rendicion($1, $2::jsonb, $3::timestamptz)`, [ids.a, JSON.stringify({ lineas: conCuenta2, empresa_id: 2 }), v])
+  ok(f === 'RDI-034', 'editar: conserva el folio si no cambian persona ni Nº')
+  ok(Number(await valor(`select total from public.rendiciones where id = $1`, [ids.a])) === 3500, 'editar: total con las líneas nuevas')
+  ok((await valor(`select count(*)::int from public.rendicion_eventos where rendicion_id = $1 and evento = 'Editada por tesorería'`, [ids.a])) === 1, 'editar: evento Editada por tesorería')
+  await debeFallar(`select public.editar_rendicion('${ids.a}', $1::jsonb, $2::timestamptz)`, 'editar: versión vieja no pisa otra edición', [JSON.stringify({ lineas: conCuenta }), v])
+  const f2 = await valor(`select public.editar_rendicion($1, $2::jsonb, null)`, [ids.a, JSON.stringify({ lineas: conCuenta, nro: 36 })])
+  ok(f2 === 'RDI-036', `editar: nuevo Nº → nuevo folio (${f2})`)
+  await debeFallar(`select public.editar_rendicion('${ids.c}', $1::jsonb, null)`, 'editar: solo aprobadas', [JSON.stringify({ lineas: conCuenta })])
+
+  // Anular: solo origen App; vuelve a revisión con el folio
+  await debeFallar(`select public.anular_aprobacion('${r2}', null)`, 'anular: historial no tiene aprobación que anular')
+  await db.query(`select public.anular_aprobacion($1, null)`, [ids.a])
+  const an = await uno(`select estado::text, aprobacion_anulada, folio from public.rendiciones where id = $1`, [ids.a])
+  ok(an.estado === 'en_revision' && an.aprobacion_anulada && an.folio === 'RDI-036', 'anular: en revisión, marcada y con su folio')
+  ok((await valor(`select ultimo_evento from public.v_rendiciones where id = $1`, [ids.a])) === 'Aprobación anulada', 'anular: evento')
+  await debeFallar(`select public.anular_aprobacion('${ids.a}', null)`, 'anular: no dos veces')
+  ok((await valor(`select public.aprobar_rendicion($1, $2::jsonb, null)`, [ids.a, JSON.stringify({ lineas: conCuenta })])) === 'RDI-036', 'reaprobar: conserva el folio')
+
+  // Eliminar y restaurar al estado anterior
+  await db.query(`select public.eliminar_rendicion($1, '')`, [ids.a])
+  const el = await uno(`select estado::text, estado_previo::text, nota_tesoreria from public.rendiciones where id = $1`, [ids.a])
+  ok(el.estado === 'eliminada' && el.estado_previo === 'aprobada' && el.nota_tesoreria === 'Eliminada por tesorería.', 'eliminar: guarda el estado previo y el motivo')
+  await debeFallar(`select public.eliminar_rendicion('${ids.a}', null)`, 'eliminar: no dos veces')
+  ok((await valor(`select public.restaurar_rendicion($1)::text`, [ids.a])) === 'aprobada', 'restaurar: vuelve a aprobada')
+  ok((await valor(`select nota_tesoreria from public.rendiciones where id = $1`, [ids.a])) === null, 'restaurar: limpia el motivo de eliminación')
+  await debeFallar(`select public.restaurar_rendicion('${ids.a}')`, 'restaurar: solo eliminadas')
+  await db.query(`select public.eliminar_rendicion($1, 'Duplicada')`, [ids.c])
+  ok((await valor(`select public.restaurar_rendicion($1)::text`, [ids.c])) === 'rechazada', 'restaurar: una rechazada vuelve a rechazada')
+
+  // Exportadas: solo aprobadas, una vez
+  ok((await valor(`select public.marcar_exportadas(array[$1, $2, $3]::uuid[])`, [ids.a, ids.b, ids.c])) === 2, 'marcar_exportadas: solo aprobadas')
+  ok((await valor(`select public.marcar_exportadas(array[$1]::uuid[])`, [ids.a])) === 0, 'marcar_exportadas: no repite')
+})
+
 console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK')
 process.exit(fallos ? 1 : 0)

@@ -45,6 +45,10 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 
 - [ ] **Fotos huérfanas en Storage** _(2.7)_: si alguien sube fotos y nunca termina de enviar, o quita una foto después de subirla, el archivo queda en `respaldos/` sin rendición. No afecta el funcionamiento; limpiar con una tarea programada (archivos sin fila en `respaldos` con más de 7 días).
 
+- [ ] **Editar en el libro una rendición de persona eliminada** _(4.4)_: la validación y `editar_rendicion` exigen un solicitante activo, así que no se puede guardar sin restaurar a la persona en Perfiles o cambiar el solicitante. Si molesta, aceptar la persona actual aunque esté eliminada.
+- [ ] **Libro sin Realtime de pagos** _(4.2)_: el libro se refresca con los cambios de `rendiciones`; los pagos nuevos se ven al recargar. Agregar `pagos` a la publicación de Realtime en 6.x.
+- [ ] **Índice de carpetas carga todo**: `leerIndiceCarpetas` trae todas las rendiciones y pagos (hoy ~200 + ~180) para calcular saldos. Si pasan de unos miles, mover el cálculo a una vista o función SQL.
+
 ## Decisiones abiertas
 
 Ver "Decisiones abiertas" en [README.md](README.md) (hosting, login con Microsoft 365, notificaciones por correo, fecha de corte con el prototipo).

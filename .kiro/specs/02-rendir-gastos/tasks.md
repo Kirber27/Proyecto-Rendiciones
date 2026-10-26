@@ -33,12 +33,12 @@ Requiere: 01 completo (auth, catálogos, esquema, storage).
   - "Completar a mano" como salida si la lectura falla (no es el camino principal).
   - `views/RendirView.vue`. "Enviar rendición" valida y muestra los problemas; el envío real es 2.7.
 
-- [ ] **2.7 RPC `enviar_rendicion` + envío** _(R4.2–R4.4)_ — 🟡 implementado y aplicado; falta tu prueba real
+- [x] **2.7 RPC `enviar_rendicion` + envío** _(R4.2–R4.4)_ — probado el 2026-10-26
   - [x] Migración `20261026000011_rpc_enviar_rendicion.sql` (aplicada): crea o reenvía en una transacción, valida dueño/tesorería, estado (solo en revisión u observada), fotos dentro de `<persona>/<rendición>/`, evento Enviada/Reenviada con resumen ("2 gasto(s) por $ 25.000"). 15 casos en `npm run db:probar`.
   - [x] `services/rendiciones.ts`: fotos reducidas a 2400 px, un reintento, "ya existe" = subida; si falla alguna, avisa cuál y no envía; el reintento usa el mismo id y solo sube las que faltan.
   - [x] Store y pantalla: progreso en el botón, mensaje "Rendición Nº X enviada por $ Y…", limpia el borrador.
-  - [ ] Prueba real: enviar DHE-042 con su foto y revisar en la base (rendición, líneas, respaldo en Storage, evento).
+  - [x] Prueba real: Nº 42 por $ 70.389 en revisión, 1 foto en Storage y en `respaldos`, evento Enviada.
 
-- [ ] **2.8 Corregir y reenviar** _(R5.1)_
-  - `cargarParaCorregir(id)`: trae cabecera, líneas y respaldos; envío marca Reenviada.
-  - (Se conecta desde Mis rendiciones en el spec 05.)
+- [x] **2.8 Corregir y reenviar** _(R5.1)_
+  - `rendir.cargarParaCorregir(id)` (usa `abrirRendicion`): borrador con su id, fotos guardadas visibles (no se pueden quitar) y el motivo de tesorería; el envío conserva el id y queda como Reenviada.
+  - Se abre desde Mis rendiciones → "Corregir y reenviar".
