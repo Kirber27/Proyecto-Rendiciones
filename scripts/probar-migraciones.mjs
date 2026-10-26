@@ -365,5 +365,61 @@ await como(raul, async () => {
   await debeFallar(`select public.eliminar_pago('${dhePersona}')`, 'eliminar_pago: un solicitante no puede')
 })
 
+// ---------- Banco (spec 07) ----------
+const movsJson = JSON.stringify({
+  nombre_archivo: 'cartola-octubre.xlsx',
+  medio_pago_id: 2,
+  movimientos: [
+    { idx: 0, fecha: '2026-10-22', descripcion: 'TRANSF RAUL DIAZ', referencia: '1', cargo: 1000, abono: 0 },
+    { idx: 1, fecha: '2026-10-23', descripcion: 'TRANSF RAUL DIAZ', referencia: '2', cargo: 3000, abono: 0 },
+    { idx: 2, fecha: '2026-10-24', descripcion: 'COMISION', referencia: '3', cargo: 990, abono: 0 },
+    { idx: 3, fecha: '2026-10-24', descripcion: 'ABONO CLIENTE', referencia: '4', cargo: 0, abono: 50000 },
+    { idx: 4, fecha: '2026-10-25', descripcion: 'PAGO MANUAL', referencia: '5', cargo: 700, abono: 0 },
+  ],
+})
+let cart, mv
+await como(raul, async () => {
+  await debeFallar(`select public.guardar_cartola($1::jsonb)`, 'guardar_cartola: un solicitante no puede', [movsJson])
+})
+await como(admin, async () => {
+  await debeFallar(`select public.guardar_cartola('{"movimientos": []}'::jsonb)`, 'guardar_cartola: sin movimientos')
+  cart = await valor(`select public.guardar_cartola($1::jsonb)`, [movsJson])
+  ok((await valor(`select count(*)::int from public.cartola_movimientos where cartola_id = $1`, [cart])) === 5, 'guardar_cartola: guarda los movimientos')
+  mv = Object.fromEntries((await db.query(`select idx, id from public.cartola_movimientos where cartola_id = $1`, [cart])).rows.map((r) => [r.idx, r.id]))
+  // pago manual previo (sin cartola) para vincular
+  const manual = await valor(`select public.registrar_pago($1::jsonb)`, [pagoJson({ monto: 700, fecha: '2026-10-25' })])
+  const lote = [
+    { movimiento_id: mv[0], tipo: 'rendiciones', rendicion_ids: [ids.a] },
+    { movimiento_id: mv[1], tipo: 'anticipo', persona_id: raulPersona },
+    { movimiento_id: mv[4], tipo: 'pago', pago_id: manual },
+  ]
+  await debeFallar(`select public.confirmar_conciliacion($1::jsonb)`, 'confirmar: rendiciones de distintas personas', [JSON.stringify([{ movimiento_id: mv[0], tipo: 'rendiciones', rendicion_ids: [ids.a, r2] }])])
+  await debeFallar(`select public.confirmar_conciliacion($1::jsonb)`, 'confirmar: un abono no se asigna', [JSON.stringify([{ movimiento_id: mv[3], tipo: 'anticipo', persona_id: raulPersona }])])
+  ok((await valor(`select public.confirmar_conciliacion($1::jsonb)`, [JSON.stringify(lote)])) === 3, 'confirmar: 3 conciliados')
+  const creado = await uno(`select monto, tipo::text, obs, medio_pago_id, fecha::text from public.pagos where movimiento_id = $1`, [mv[0]])
+  ok(Number(creado.monto) === 1000 && creado.tipo === 'Pago' && creado.obs === 'Banco' && creado.medio_pago_id === 2 && creado.fecha === '2026-10-22', 'confirmar: pago con monto, fecha y banco del cargo')
+  ok((await valor(`select count(*)::int from public.pago_rendiciones pr join public.pagos p on p.id = pr.pago_id where p.movimiento_id = $1`, [mv[0]])) === 1, 'confirmar: vínculo a la rendición')
+  ok((await valor(`select tipo::text from public.pagos where movimiento_id = $1`, [mv[1]])) === 'Anticipo', 'confirmar: anticipo')
+  ok((await valor(`select id from public.pagos where movimiento_id = $1`, [mv[4]])) === manual, 'confirmar: vincula el pago ya registrado')
+  await debeFallar(`select public.confirmar_conciliacion($1::jsonb)`, 'confirmar: un cargo no se asigna dos veces', [JSON.stringify([lote[1]])])
+  await debeFallar(`select public.confirmar_conciliacion($1::jsonb)`, 'confirmar: todo o nada', [JSON.stringify([{ movimiento_id: mv[2], tipo: 'anticipo', persona_id: raulPersona }, lote[0]])])
+  ok((await valor(`select count(*)::int from public.pagos where movimiento_id = $1`, [mv[2]])) === 0, 'confirmar: lote fallido no deja nada a medias')
+
+  await db.query(`select public.ignorar_movimiento($1, true)`, [mv[2]])
+  await debeFallar(`select public.confirmar_conciliacion($1::jsonb)`, 'confirmar: no un cargo ignorado', [JSON.stringify([{ movimiento_id: mv[2], tipo: 'anticipo', persona_id: raulPersona }])])
+  await db.query(`select public.deshacer_asignacion($1)`, [mv[2]])
+  ok((await valor(`select ignorado from public.cartola_movimientos where id = $1`, [mv[2]])) === false, 'deshacer: desmarca ignorado')
+  await db.query(`select public.deshacer_asignacion($1)`, [mv[4]])
+  ok((await uno(`select movimiento_id from public.pagos where id = $1`, [manual])).movimiento_id === null, 'deshacer: el pago manual solo se desvincula')
+  await db.query(`select public.deshacer_asignacion($1)`, [mv[1]])
+  ok((await valor(`select count(*)::int from public.pagos where movimiento_id = $1`, [mv[1]])) === 0, 'deshacer: borra el pago creado desde Banco')
+  await debeFallar(`select public.deshacer_asignacion('${mv[1]}')`, 'deshacer: cargo sin asignar')
+
+  await db.query(`select public.confirmar_conciliacion($1::jsonb)`, [JSON.stringify([lote[2]])])
+  ok((await valor(`select public.eliminar_cartola($1)`, [cart])) === 1, 'eliminar_cartola: borra solo los pagos creados desde Banco')
+  ok((await valor(`select count(*)::int from public.pagos where id = $1 and movimiento_id is null`, [manual])) === 1, 'eliminar_cartola: el pago manual queda, sin cartola')
+  ok((await valor(`select count(*)::int from public.cartola_movimientos where cartola_id = $1`, [cart])) === 0, 'eliminar_cartola: borra sus movimientos')
+})
+
 console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK')
 process.exit(fallos ? 1 : 0)

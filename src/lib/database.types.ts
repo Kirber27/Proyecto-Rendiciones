@@ -705,9 +705,30 @@ export type Database = {
     Functions: {
       _clp: { Args: { n: number }; Returns: string }
       _exigir_admin: { Args: never; Returns: undefined }
+      _exigir_tesoreria: { Args: never; Returns: undefined }
       _reemplazar_lineas: {
         Args: { p_fecha: string; p_lineas: Json; p_rendicion_id: string }
         Returns: undefined
+      }
+      _tomar_cargo: {
+        Args: { p_id: string }
+        Returns: {
+          abono: number
+          cargo: number
+          cartola_id: string
+          descripcion: string
+          fecha: string
+          id: string
+          idx: number
+          ignorado: boolean
+          referencia: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cartola_movimientos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       _tomar_del_libro: {
         Args: {
@@ -798,10 +819,16 @@ export type Database = {
         }
         Returns: string
       }
+      confirmar_conciliacion: { Args: { p: Json }; Returns: number }
+      deshacer_asignacion: {
+        Args: { p_movimiento_id: string }
+        Returns: undefined
+      }
       editar_rendicion: {
         Args: { p: Json; p_id: string; p_version: string }
         Returns: string
       }
+      eliminar_cartola: { Args: { p_id: string }; Returns: number }
       eliminar_pago: { Args: { p_id: string }; Returns: undefined }
       eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
       eliminar_rendicion: {
@@ -815,8 +842,13 @@ export type Database = {
         Args: { p_nro: number; p_persona_id: string }
         Returns: string
       }
+      guardar_cartola: { Args: { p: Json }; Returns: string }
       guardar_persona: { Args: { p: Json }; Returns: string }
       hook_validar_correo: { Args: { event: Json }; Returns: Json }
+      ignorar_movimiento: {
+        Args: { p_id: string; p_valor: boolean }
+        Returns: undefined
+      }
       listar_cuentas: {
         Args: never
         Returns: {

@@ -8,19 +8,20 @@
 ## Datos
 
 - Lectura del archivo: SheetJS en el cliente (`import('xlsx')`, `cellDates: true`).
-- Guardado: insert `cartolas` + bulk insert `cartola_movimientos` (lotes de 500).
+- Guardado: RPC `guardar_cartola(p)` (cartola + movimientos en una transacción). Los duplicados de otras cartolas no se guardan.
 - Movimiento asignado = existe `pagos.movimiento_id`. Ignorado = `ignorado = true`.
 
-## RPC (migración `0013_rpc_banco.sql`)
+## RPC (migración `20261026000015_rpc_banco.sql`)
 
 ```sql
-confirmar_conciliacion(p jsonb)  -- [{ movimiento_id, tipo: 'link'|'rend'|'anticipo', pago_id?, rendicion_ids?, persona_id? }]
+guardar_cartola(p jsonb) returns uuid
+confirmar_conciliacion(p jsonb) returns int  -- [{ movimiento_id, tipo: 'pago'|'rendiciones'|'anticipo', pago_id?, rendicion_ids?, persona_id? }]
 ignorar_movimiento(id uuid, valor bool)
 deshacer_asignacion(movimiento_id uuid)
 eliminar_cartola(id uuid) returns int  -- pagos eliminados
 ```
 
-Pagos creados: `fecha = mov.fecha`, `medio_pago_id = cartola.medio_pago_id`, `monto = mov.cargo`, `descripcion = mov.descripcion`, `origen = 'App'`, `obs = 'Banco'`.
+Pagos creados: `fecha = mov.fecha`, `medio_pago_id = cartola.medio_pago_id`, `monto = mov.cargo`, `descripcion = mov.descripcion`, `origen = 'App'`, `obs = 'Banco'`. Deshacer o eliminar la cartola borra esos pagos; un pago que ya existía (vinculado con `tipo = 'pago'`) solo se desvincula.
 
 ## UI
 

@@ -25,3 +25,26 @@ export type CampoCartola = (typeof CAMPOS_CARTOLA)[number]
 
 /** Índice de columna por campo; -1 = el archivo no la tiene. */
 export type MapeoCartola = Record<CampoCartola, number>
+
+/** Movimiento ya guardado en la base. */
+export interface MovimientoGuardado extends MovimientoCartola {
+  id: string
+  cartolaId: string
+  /** Posición en el archivo. */
+  idx: number
+  /** "No es de rendiciones". */
+  ignorado: boolean
+}
+
+export interface CartolaGuardada {
+  id: string
+  nombreArchivo: string
+  medioPagoId: number | null
+  creadoEn: string
+}
+
+/** Una asignación de un cargo (payload de `confirmar_conciliacion`). */
+export type AsignacionCargo =
+  | { movimientoId: string; tipo: 'pago'; pagoId: string }
+  | { movimientoId: string; tipo: 'rendiciones'; rendicionIds: string[] }
+  | { movimientoId: string; tipo: 'anticipo'; personaId: string }

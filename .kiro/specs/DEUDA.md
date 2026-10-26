@@ -47,6 +47,7 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 
 - [ ] **Editar en el libro una rendición de persona eliminada** _(4.4)_: la validación y `editar_rendicion` exigen un solicitante activo, así que no se puede guardar sin restaurar a la persona en Perfiles o cambiar el solicitante. Si molesta, aceptar la persona actual aunque esté eliminada.
 - [x] **Libro sin Realtime de pagos** _(4.2 → resuelto en 6.2)_: `pagos` está en la publicación de Realtime y `usePorAprobarStore` escucha ambas tablas.
+- [ ] **Límite de 1.000 filas por consulta de Supabase** _(detectado en 7.3)_: `listarLibro`, `leerPagos` y `leerIndiceCarpetas` piden todo con `.limit(10000)`, pero la API corta en 1.000 (`max_rows`). Hoy hay ~200 rendiciones y ~180 pagos; antes de llegar a 1.000 paginar con `.range()` como `leerCartolas`, o subir `max_rows` en el proyecto.
 - [ ] **Índice de carpetas carga todo**: `leerIndiceCarpetas` trae todas las rendiciones y pagos (hoy ~200 + ~180) para calcular saldos. Si pasan de unos miles, mover el cálculo a una vista o función SQL.
 
 ## Decisiones abiertas
