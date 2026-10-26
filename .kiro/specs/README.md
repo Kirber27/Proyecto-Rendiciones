@@ -9,7 +9,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | 🟡 Implementado (falta prueba real) |
 | 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 Implementado (4.7: probar PDF con fotos en el navegador) |
 | 05 | [Carpetas](05-carpetas/) — mis rendiciones y carpetas por persona | 04 | 🟡 Implementado (5.5: confirmar RLS con cuenta real) |
-| 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | 🟡 En curso (6.1 ✔) |
+| 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | ✅ Implementado (falta probar en el navegador) |
 | 07 | [Banco y conciliación](07-banco-conciliacion/) — cartolas y propuestas | 06 | 🟡 En curso (7.1–7.2 ✔) |
 | 08 | [Perfiles](08-perfiles/) — personas, funciones, cuentas | 01 | ✅ Completo (8.7 invitaciones: opcional) |
 | 09 | Despliegue (abajo) | todo | ⬜ |

@@ -96,6 +96,18 @@ export async function contarPorAprobar(): Promise<number> {
   return count ?? 0
 }
 
+/** Cantidad en revisión por persona (columna "Por aprobar" de Personas). */
+export async function porAprobarPorPersona(): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from('rendiciones')
+    .select('persona_id')
+    .eq('estado', 'en_revision')
+  lanzar(error)
+  const mapa = new Map<string, number>()
+  for (const r of data ?? []) mapa.set(r.persona_id, (mapa.get(r.persona_id) ?? 0) + 1)
+  return mapa
+}
+
 type Linea = Tables<'rendicion_lineas'>
 type Cabecera = Tables<'rendiciones'>
 

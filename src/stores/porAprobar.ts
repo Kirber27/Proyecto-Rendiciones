@@ -9,7 +9,7 @@ import { useAuthStore } from './auth'
 export const usePorAprobarStore = defineStore('porAprobar', () => {
   const auth = useAuthStore()
   const cantidad = ref(0)
-  /** Sube con cada cambio en rendiciones: las pantallas lo miran para recargar sus listas. */
+  /** Sube con cada cambio en rendiciones o pagos: las pantallas lo miran para recargar sus listas. */
   const cambios = ref(0)
   let canal: RealtimeChannel | null = null
   let espera: ReturnType<typeof setTimeout> | null = null
@@ -39,6 +39,7 @@ export const usePorAprobarStore = defineStore('porAprobar', () => {
       // (pasaba al salir y entrar de nuevo antes de que se cerrara el anterior).
       .channel(`por-aprobar-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rendiciones' }, alCambiar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pagos' }, alCambiar)
       .subscribe()
   }
 

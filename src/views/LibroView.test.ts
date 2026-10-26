@@ -75,6 +75,7 @@ const pagos = () => [
     rendicionIds: ['a'],
     medioPagoId: 2,
     descripcion: '',
+    movimientoId: null,
   },
 ]
 const abierta = (): RendicionAbierta => ({

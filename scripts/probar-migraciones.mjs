@@ -332,5 +332,38 @@ await como(admin, async () => {
   ok((await valor(`select public.marcar_exportadas(array[$1]::uuid[])`, [ids.a])) === 0, 'marcar_exportadas: no repite')
 })
 
+// ---------- Pagos (spec 06) ----------
+const pagoJson = (c) => JSON.stringify({ persona_id: raulPersona, tipo: 'Pago', fecha: '2026-10-25', medio_pago_id: 2, monto: 1000, rendicion_ids: [], ...c })
+await como(raul, async () => {
+  await debeFallar(`select public.registrar_pago($1::jsonb)`, 'registrar_pago: un solicitante no puede', [pagoJson({})])
+})
+await como(admin, async () => {
+  await debeFallar(`select public.registrar_pago($1::jsonb)`, 'registrar_pago: exige monto', [pagoJson({ monto: 0 })])
+  await debeFallar(`select public.registrar_pago($1::jsonb)`, 'registrar_pago: no vincula rendiciones de otra persona', [pagoJson({ rendicion_ids: [r2] })])
+  await debeFallar(`select public.registrar_pago($1::jsonb)`, 'registrar_pago: no vincula rendiciones no aprobadas', [pagoJson({ rendicion_ids: [ids.c] })])
+  const pg = await valor(`select public.registrar_pago($1::jsonb)`, [pagoJson({ monto: 3500, rendicion_ids: [ids.a, ids.a, ids.b] })])
+  const fila = await uno(`select monto, origen::text, creado_por from public.pagos where id = $1`, [pg])
+  ok(Number(fila.monto) === 3500 && fila.origen === 'App' && fila.creado_por === admin, 'registrar_pago: guarda monto, origen y quién')
+  ok((await valor(`select count(*)::int from public.pago_rendiciones where pago_id = $1`, [pg])) === 2, 'registrar_pago: vínculos sin repetir')
+  const dev = await valor(`select public.registrar_pago($1::jsonb)`, [pagoJson({ tipo: 'Devolución de la persona', monto: 500 })])
+  ok(Number(await valor(`select monto from public.pagos where id = $1`, [dev])) === -500, 'registrar_pago: devolución en negativo')
+  const ant = await valor(`select public.registrar_pago($1::jsonb)`, [pagoJson({ tipo: 'Anticipo', monto: -800, fecha: '' })])
+  const a = await uno(`select monto, fecha = current_date as hoy from public.pagos where id = $1`, [ant])
+  ok(Number(a.monto) === 800 && a.hoy, 'registrar_pago: anticipo en positivo y fecha de hoy por defecto')
+  await db.exec(`reset role`)
+  const cartola = await valor(`insert into public.cartolas (nombre_archivo) values ('c.xlsx') returning id`)
+  const mov = await valor(`insert into public.cartola_movimientos (cartola_id, idx, fecha, cargo) values ($1, 0, '2026-10-25', 800) returning id`, [cartola])
+  await db.query(`update public.pagos set movimiento_id = $1 where id = $2`, [mov, ant])
+  await db.exec(`set role authenticated`)
+  await debeFallar(`select public.eliminar_pago('${ant}')`, 'eliminar_pago: no los de cartola')
+  await db.query(`select public.eliminar_pago($1)`, [pg])
+  ok((await valor(`select count(*)::int from public.pago_rendiciones where pago_id = $1`, [pg])) === 0, 'eliminar_pago: borra el pago y sus vínculos')
+  await debeFallar(`select public.eliminar_pago('${pg}')`, 'eliminar_pago: ya no existe')
+})
+await como(raul, async () => {
+  ok((await valor(`select count(*)::int from public.pagos`)) === 2, 'Raúl: ve sus pagos registrados por tesorería')
+  await debeFallar(`select public.eliminar_pago('${dhePersona}')`, 'eliminar_pago: un solicitante no puede')
+})
+
 console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK')
 process.exit(fallos ? 1 : 0)

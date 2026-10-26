@@ -70,6 +70,7 @@ function datos(): DatosCarpeta {
       rendicionIds: ['a'],
       medioPagoId: 2,
       descripcion: '',
+      movimientoId: null,
     },
   ]
   return {

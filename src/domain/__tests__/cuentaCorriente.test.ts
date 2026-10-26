@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { TipoPago } from '@/types/pagos'
 import { asignarPagos } from '../asignacion'
 import {
+  montoSugerido,
   movimientosPersona,
   ordenarPorSaldo,
+  pendientesDePago,
   resumenPersonas,
   situacionPersona,
   type PagoCC,
@@ -111,6 +113,29 @@ describe('situación y resumen', () => {
       conSaldo: 4,
     })
     expect(ordenarPorSaldo(cuentas).map((c) => c.saldo)).toEqual([-471991, 202214, 100, -2, 0.4])
+  })
+})
+
+describe('formulario de pago', () => {
+  const a = asignarPagos(rends, pagos)
+
+  it('pendientesDePago: solo con saldo, de la más antigua a la más nueva', () => {
+    expect(pendientesDePago('A', rends, a)).toEqual([
+      { id: 'r1', etiqueta: 'JPE-001', fecha: '2026-01-15', saldo: 5000 },
+      { id: 'r2', etiqueta: 'JPE-002', fecha: '2026-02-10', saldo: 10000 },
+      { id: 'r3', etiqueta: 'Nº 3', fecha: '2026-02-10', saldo: 5000 },
+    ])
+    const pagada = asignarPagos(rends, [
+      ...pagos,
+      pago('p3', '2026-03-01', 5000, { rendicionIds: ['r1'] }),
+    ])
+    expect(pendientesDePago('A', rends, pagada).map((p) => p.id)).toEqual(['r2', 'r3'])
+  })
+
+  it('montoSugerido: suma de las elegidas o saldo positivo', () => {
+    expect(montoSugerido(20000, [])).toBe(20000)
+    expect(montoSugerido(-5000, [])).toBe(0)
+    expect(montoSugerido(20000, [{ saldo: 5000 }, { saldo: 10000.4 }])).toBe(15000)
   })
 })
 

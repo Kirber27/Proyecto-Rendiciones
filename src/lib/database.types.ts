@@ -802,6 +802,7 @@ export type Database = {
         Args: { p: Json; p_id: string; p_version: string }
         Returns: string
       }
+      eliminar_pago: { Args: { p_id: string }; Returns: undefined }
       eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
       eliminar_rendicion: {
         Args: { p_id: string; p_nota?: string }
@@ -838,6 +839,7 @@ export type Database = {
         Args: { p_id: string; p_nota: string; p_version: string }
         Returns: undefined
       }
+      registrar_pago: { Args: { p: Json }; Returns: string }
       restaurar_persona: { Args: { p_persona_id: string }; Returns: undefined }
       restaurar_rendicion: {
         Args: { p_id: string }

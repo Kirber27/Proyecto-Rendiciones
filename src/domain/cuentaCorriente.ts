@@ -169,3 +169,41 @@ export function resumenPersonas(cuentas: Iterable<CuentaPersona>): ResumenPerson
 export function ordenarPorSaldo<T extends Pick<CuentaPersona, 'saldo'>>(cuentas: Iterable<T>): T[] {
   return [...cuentas].sort((a, b) => Math.abs(b.saldo) - Math.abs(a.saldo))
 }
+
+// ---------- Formulario de pago ----------
+
+export interface PendienteDePago {
+  id: string
+  /** Folio o "Nº X". */
+  etiqueta: string
+  fecha: string
+  saldo: number
+}
+
+/** Rendiciones de la persona que aún no están pagadas (para vincular un pago), de la más antigua a la más nueva. */
+export function pendientesDePago(
+  personaId: string,
+  rendiciones: readonly RendicionCC[],
+  asignacion: Asignacion,
+): PendienteDePago[] {
+  return rendiciones
+    .filter((r) => r.personaId === personaId)
+    .map((r) => ({ r, st: asignacion.porRendicion.get(r.id) }))
+    .filter(({ st }) => st && st.saldo > TOLERANCIA_SALDO)
+    .sort((a, b) => (a.r.fecha || '').localeCompare(b.r.fecha || '') || a.r.nro - b.r.nro)
+    .map(({ r, st }) => ({
+      id: r.id,
+      etiqueta: r.folio || `Nº ${r.nro}`,
+      fecha: r.fecha,
+      saldo: st!.saldo,
+    }))
+}
+
+/** Monto que se propone: lo que suman las rendiciones elegidas o, si no hay, el saldo positivo. */
+export function montoSugerido(
+  saldoPersona: number,
+  elegidas: readonly Pick<PendienteDePago, 'saldo'>[],
+): number {
+  if (elegidas.length) return Math.round(elegidas.reduce((s, p) => s + p.saldo, 0))
+  return saldoPersona > TOLERANCIA_SALDO ? Math.round(saldoPersona) : 0
+}
