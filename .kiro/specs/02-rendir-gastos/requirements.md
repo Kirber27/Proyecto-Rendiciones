@@ -19,6 +19,7 @@ Pantalla principal del solicitante (mobile first): subir fotos, lectura automát
 - **R2.7** SI la lectura falla, ENTONCES EL SISTEMA DEBERÁ mostrar el mensaje correspondiente (detenida, límite alcanzado, imagen rechazada, datos no ordenables, genérico) con "Intentar de nuevo" y "Empezar de nuevo".
 - **R2.8** EL SISTEMA DEBERÁ registrar cada lectura en `lecturas_ia` y limitar a 30 lecturas por usuario por día (configurable).
 - **R2.9** MIENTRAS haya un borrador con fotos nuevas, EL SISTEMA DEBERÁ ofrecer "Volver a leer las fotos".
+- **R2.10** SI la lectura falla, ENTONCES EL SISTEMA DEBERÁ ofrecer "Completar a mano" como alternativa (borrador vacío con fecha de hoy y la empresa por defecto).
 
 ## R3. Revisión (editor)
 

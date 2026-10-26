@@ -21,18 +21,23 @@ Requiere: 01 completo (auth, catálogos, esquema, storage).
   - Test de paridad: el prompt es idéntico al `buildPrompt()` del prototipo (se lee del archivo original).
   - Tests con 2–3 respuestas JSON de ejemplo (con formulario, sin formulario, solicitante desconocido).
 
-- [ ] **2.5 Edge Function `leer-rendicion`** _(R2.3, R2.8)_
-  - Consultar la skill `claude-api` antes de escribir la llamada (modelo, formato de imágenes, límites).
-  - Crear `supabase/functions/deno.json` con import map `"zod": "npm:zod@4"` para que `_shared/lectura.ts` funcione en Deno.
-  - Auth, cupo diario, prompt desde la base, llamada, validación, registro en `lecturas_ia`, CORS.
-  - `supabase functions serve` local + prueba con `CLAUDE/datos/original/ejemplo_formulario_DHE-042.jpg`.
+- [x] **2.5 Edge Function `leer-rendicion`** _(R2.3, R2.8)_ — probada el 2026-10-26
+  - [x] Consultada la skill `claude-api`: SDK oficial `@anthropic-ai/sdk@0.133.0` (fijado), modelo `claude-opus-5-5` (secreto `ANTHROPIC_MODEL` para cambiarlo), esfuerzo `medium` (`ANTHROPIC_EFFORT`), **structured outputs** (`output_config.format` con `ESQUEMA_SALIDA`), y **fallbacks `"default"`** (beta `server-side-fallback-2026-07-01`) ante rechazos por política.
+  - [x] `supabase/functions/leer-rendicion/index.ts` + `deno.json` (import map) + `[functions.leer-rendicion]` en `config.toml` (`verify_jwt = false`: la función valida la sesión con `getUser`). Sesión, cupo diario (`LIMITE_LECTURAS_DIA`, 30), listas desde la base, máx. 20 imágenes, errores con código, registro en `lecturas_ia`.
+  - [x] Desplegada con `supabase functions deploy --use-api` (sin Docker). Verificado: sin sesión → `unauthorized`; CORS OK. Tipos revisados con TypeScript y el SDK real.
+  - [x] Frontend: `services/lectura.ts` (`leerFotos`: base64, `functions.invoke`, códigos de error, Detener) y botón **Leer con IA** en `/_estilos`.
+  - [x] Prueba real con `ejemplo_formulario_DHE-042.jpg`: 16 s, 5 imágenes, 9.206 tokens de entrada / 329 de salida ≈ US$ 0,043 por lectura. Se mantiene `claude-opus-5-5` con esfuerzo `medium`.
 
-- [ ] **2.6 Store `useRendirStore` + RendirView** _(R2.1, R2.5, R2.9, R4.5, R4.6)_
-  - Flujo completo hasta mostrar el borrador; Detener con `AbortController`; persistencia del borrador.
+- [x] **2.6 Store `useRendirStore` + RendirView** _(R2.1, R2.5, R2.9, R4.5, R4.6)_
+  - `stores/rendir.ts`: lectura automática al subir fotos (indicador inmediato), Detener, solicitante fijo si no es tesorería, "Volver a leer" cuando hay fotos nuevas, aviso si hay más de 20 fotos, borrador guardado en el navegador por usuario (se recupera al volver; se limpia en memoria al cambiar de usuario sin tocar lo guardado del otro), Descartar con confirmación en línea.
+  - "Completar a mano" como salida si la lectura falla (no es el camino principal).
+  - `views/RendirView.vue`. "Enviar rendición" valida y muestra los problemas; el envío real es 2.7.
 
-- [ ] **2.7 RPC `enviar_rendicion` + envío** _(R4.2–R4.4)_
-  - Migración de la RPC con validaciones; servicio de subida a Storage con reintento; mensaje de éxito.
-  - Test SQL: un solicitante no puede enviar a nombre de otra persona ni reenviar una aprobada.
+- [ ] **2.7 RPC `enviar_rendicion` + envío** _(R4.2–R4.4)_ — 🟡 implementado y aplicado; falta tu prueba real
+  - [x] Migración `20261026000011_rpc_enviar_rendicion.sql` (aplicada): crea o reenvía en una transacción, valida dueño/tesorería, estado (solo en revisión u observada), fotos dentro de `<persona>/<rendición>/`, evento Enviada/Reenviada con resumen ("2 gasto(s) por $ 25.000"). 15 casos en `npm run db:probar`.
+  - [x] `services/rendiciones.ts`: fotos reducidas a 2400 px, un reintento, "ya existe" = subida; si falla alguna, avisa cuál y no envía; el reintento usa el mismo id y solo sube las que faltan.
+  - [x] Store y pantalla: progreso en el botón, mensaje "Rendición Nº X enviada por $ Y…", limpia el borrador.
+  - [ ] Prueba real: enviar DHE-042 con su foto y revisar en la base (rendición, líneas, respaldo en Storage, evento).
 
 - [ ] **2.8 Corregir y reenviar** _(R5.1)_
   - `cargarParaCorregir(id)`: trae cabecera, líneas y respaldos; envío marca Reenviada.

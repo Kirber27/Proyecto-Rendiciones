@@ -195,5 +195,54 @@ await como(raul, async () => {
   await debeFallar(`select * from public.listar_cuentas()`, 'solicitante: no ve las cuentas')
 })
 
+// ---------- RPC enviar_rendicion (2.7) ----------
+const nuevaId = '00000000-0000-4000-8000-000000000001'
+const linea = (exento) => ({ tipo: 'Boleta', proveedor: 'COPEC', exento, subcuenta_id: 8 })
+const envio = (extra = {}) =>
+  JSON.stringify({
+    id: nuevaId,
+    persona_id: raulPersona,
+    nro: 33,
+    fecha: '2026-10-20',
+    empresa_id: 2,
+    fondo: 'FONDOS POR RENDIR',
+    total_formulario: 25000,
+    lineas: [linea(15000), linea(10000)],
+    respaldos: [`${raulPersona}/${nuevaId}/a.jpg`],
+    ...extra,
+  })
+await como(raul, async () => {
+  ok((await valor(`select public.enviar_rendicion($1::jsonb)`, [envio()])) === nuevaId, 'enviar_rendicion: crea la rendición')
+  const r = await uno(`select estado::text, total, origen::text, folio from public.rendiciones where id = $1`, [nuevaId])
+  ok(r.estado === 'en_revision' && Number(r.total) === 25000 && r.origen === 'App' && r.folio === null, 'enviar_rendicion: en revisión, total por trigger, sin folio')
+  ok((await valor(`select nota from public.rendicion_eventos where rendicion_id = $1 and evento = 'Enviada'`, [nuevaId])) === '2 gasto(s) por $ 25.000', 'enviar_rendicion: evento Enviada con resumen')
+  ok((await valor(`select count(*)::int from public.respaldos where rendicion_id = $1`, [nuevaId])) === 1, 'enviar_rendicion: guarda el respaldo')
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: no a nombre de otra persona', [envio({ id: '00000000-0000-4000-8000-000000000002', persona_id: dhePersona, respaldos: [] })])
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: foto de otra carpeta', [envio({ id: '00000000-0000-4000-8000-000000000003', respaldos: [`${dhePersona}/x/a.jpg`] })])
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: sin líneas', [envio({ id: '00000000-0000-4000-8000-000000000004', lineas: [] })])
+})
+// Tesorería la observa (por ahora directo; la RPC de decisiones es 3.2) y Raúl la reenvía corregida
+await db.query(`update public.rendiciones set estado = 'observada' where id = $1`, [nuevaId])
+await como(raul, async () => {
+  await db.query(`select public.enviar_rendicion($1::jsonb)`, [envio({ lineas: [linea(25000)], respaldos: [`${raulPersona}/${nuevaId}/a.jpg`, `${raulPersona}/${nuevaId}/b.jpg`] })])
+  const r = await uno(`select estado::text, total from public.rendiciones where id = $1`, [nuevaId])
+  ok(r.estado === 'en_revision' && Number(r.total) === 25000, 'reenvío: vuelve a revisión con las líneas nuevas')
+  ok((await valor(`select count(*)::int from public.rendicion_lineas where rendicion_id = $1`, [nuevaId])) === 1, 'reenvío: reemplaza las líneas')
+  ok((await valor(`select count(*)::int from public.respaldos where rendicion_id = $1`, [nuevaId])) === 2, 'reenvío: suma solo las fotos nuevas')
+  ok((await valor(`select nota from public.rendicion_eventos where rendicion_id = $1 and evento = 'Reenviada'`, [nuevaId])).includes('corregida tras observación'), 'reenvío: evento Reenviada')
+})
+await db.query(`update public.rendiciones set estado = 'aprobada' where id = $1`, [nuevaId])
+await como(raul, async () => {
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'reenvío: no si ya está aprobada', [envio()])
+})
+await como(admin, async () => {
+  const otraId = '00000000-0000-4000-8000-000000000005'
+  const id = await valor(`select public.enviar_rendicion($1::jsonb)`, [envio({ id: otraId, persona_id: dhePersona, respaldos: [`${dhePersona}/${otraId}/a.jpg`] })])
+  ok(id === otraId, 'enviar_rendicion: tesorería puede enviar a nombre de otra persona')
+})
+await como(extra, async () => {
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: cuenta sin persona no puede enviar', [envio({ id: '00000000-0000-4000-8000-000000000006' })])
+})
+
 console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK')
 process.exit(fallos ? 1 : 0)

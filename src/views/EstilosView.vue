@@ -10,9 +10,11 @@ import AppLightbox from '@/components/ui/AppLightbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import KpiTile from '@/components/ui/KpiTile.vue'
 import { hoy } from '@/domain/formato'
-import { aBorrador } from '@/domain/lectura'
+import { aBorrador, mensajeErrorLectura } from '@/domain/lectura'
 import { lineaVacia, validarRendicion } from '@/domain/rendicion'
 import { prepararImagenes } from '@/lib/imagenes'
+import { leerFotos, MAX_IMAGENES_LECTURA } from '@/services/lectura'
+import { ErrorLectura } from '@shared/lectura'
 import { useCatalogosStore } from '@/stores/catalogos'
 import type { BorradorRendicion, ModoEditor } from '@/types/rendicion'
 
@@ -44,6 +46,37 @@ async function generarRecortes() {
   )
   recortes.value = { urls: r.imagenes.map((b) => URL.createObjectURL(b)), nota: r.nota }
   preparando.value = false
+}
+
+// Lectura real con la Edge Function (consume una lectura del cupo diario)
+const leyendo = ref(false)
+const lectura = ref<{ tipo: string; texto: string } | null>(null)
+let controlLectura: AbortController | null = null
+async function leerConIA() {
+  leyendo.value = true
+  lectura.value = null
+  controlLectura = new AbortController()
+  const inicio = performance.now()
+  try {
+    const r = await prepararImagenes(
+      fotosSubidas.value.map((f) => f.file),
+      MAX_IMAGENES_LECTURA,
+    )
+    const respuesta = await leerFotos(r.imagenes, r.nota, controlLectura.signal)
+    borrador.value = aBorrador(respuesta, { catalogos: cat.catalogos, hoy: hoy() })
+    problemas.value = []
+    const seg = Math.round((performance.now() - inicio) / 1000)
+    lectura.value = {
+      tipo: 'success',
+      texto: `Leído en ${seg} s con ${r.imagenes.length} imagen(es). El resultado está en el editor de más abajo.`,
+    }
+  } catch (e) {
+    const m = mensajeErrorLectura(e instanceof ErrorLectura ? e.codigo : 'error')
+    lectura.value = { tipo: m.tipo, texto: m.texto }
+  } finally {
+    leyendo.value = false
+    controlLectura = null
+  }
 }
 
 // Editor de rendición con el caso DHE-042, armado como si viniera de la lectura IA
@@ -223,6 +256,25 @@ const sel = ref('MSO-004')
         >
           Generar recortes
         </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          :disabled="!fotosSubidas.length || leyendo || !cat.listo"
+          @click="leerConIA"
+        >
+          {{ leyendo ? 'Leyendo…' : 'Leer con IA' }}
+        </button>
+        <button
+          v-if="leyendo"
+          type="button"
+          class="btn btn-outline-secondary"
+          @click="controlLectura?.abort()"
+        >
+          Detener
+        </button>
+      </div>
+      <div v-if="lectura" :class="['alert', `alert-${lectura.tipo}`, 'mb-0']">
+        {{ lectura.texto }}
       </div>
       <div v-if="recortes" class="card">
         <div class="card-body d-flex flex-column gap-2">

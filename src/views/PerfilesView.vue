@@ -3,6 +3,7 @@
 // Las reglas se revisan en pantalla (domain/personas.ts) y en la base (RPC); manda la base.
 import { computed, onMounted, ref } from 'vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
+import CuentasUsuario from '@/components/perfiles/CuentasUsuario.vue'
 import FormPersonaNueva from '@/components/perfiles/FormPersonaNueva.vue'
 import AppChip from '@/components/ui/AppChip.vue'
 import { fdate, norm, tr } from '@/domain/formato'
@@ -34,6 +35,7 @@ const mensaje = ref<{ tipo: 'success' | 'danger'; texto: string } | null>(null)
 const buscar = ref('')
 const confirmarEliminar = ref<string | null>(null)
 const form = ref<InstanceType<typeof FormPersonaNueva>>()
+const cuentas = ref<InstanceType<typeof CuentasUsuario>>()
 
 const INFO_ROL: Record<Rol, string> = {
   administrador: 'Gestiona perfiles y ve todo',
@@ -76,7 +78,7 @@ function avisar(tipo: 'success' | 'danger', texto: string) {
 
 /** Después de cada cambio: refrescar la lista, los catálogos y, si me afecta, mi propia sesión. */
 async function refrescar(afectadas: (string | null)[] = []) {
-  await Promise.all([cargar(), catalogos.recargar()])
+  await Promise.all([cargar(), catalogos.recargar(), cuentas.value?.cargar()])
   if (auth.persona && afectadas.includes(auth.persona.id)) await auth.cargarPersona()
 }
 
@@ -315,6 +317,14 @@ function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }
         </div>
       </div>
     </details>
+
+    <CuentasUsuario
+      ref="cuentas"
+      :personas="activas"
+      :mi-usuario="auth.session?.user.id ?? null"
+      @cambio="(t) => refrescar().then(() => avisar('success', t))"
+      @error="(t) => avisar('danger', t)"
+    />
 
     <FormPersonaNueva ref="form" :personas="gestion" :guardando="guardando" @agregar="agregar" />
 

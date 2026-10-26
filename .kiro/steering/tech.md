@@ -33,7 +33,7 @@
 
 ## Lectura con IA
 
-- Proveedor: API de Anthropic (Claude), modelo configurable por secreto `ANTHROPIC_MODEL`. Antes de implementar, consultar la referencia actual de la API (skill `claude-api`) para el id de modelo y el formato de imágenes.
+- Proveedor: API de Anthropic con el SDK oficial `@anthropic-ai/sdk` (fijado en `deno.json`). Modelo por defecto `claude-opus-5-5` (secreto `ANTHROPIC_MODEL`), esfuerzo `medium` (`ANTHROPIC_EFFORT`). Salida con **structured outputs** (`output_config.format` = `ESQUEMA_SALIDA` de `_shared/lectura.ts`) y **fallbacks `"default"`** ante rechazos por política. Antes de cambiar la llamada, consultar la skill `claude-api` (la API cambia seguido).
 - El prompt y las reglas de lectura se portan de `buildPrompt()` del prototipo (ver `business-rules.md` §Lectura).
 - Los recortes ampliados (cuadrantes / mitades) se generan en el **cliente** con `<canvas>` antes de enviar (porta `prepImages()`).
 - Límite de uso por usuario (tabla `lecturas_ia`) para controlar costo.
@@ -41,7 +41,7 @@
 ## Entornos y secretos
 
 - `.env.local` (no se commitea): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- Secretos de Edge Functions (`supabase secrets set`): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
+- Secretos de Edge Functions (`supabase secrets set`): `ANTHROPIC_API_KEY` (obligatorio), `ANTHROPIC_MODEL`, `ANTHROPIC_EFFORT`, `LIMITE_LECTURAS_DIA` (opcionales). Despliegue: `npx supabase functions deploy leer-rendicion --use-api`.
 - La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y funciones.
 - **Sin Docker local**: se trabaja contra un proyecto en **Supabase Cloud** (creado desde la web). Migraciones con `supabase link` + `supabase db push`. Si más adelante se separan entornos, un proyecto de desarrollo y otro de producción. Frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
 

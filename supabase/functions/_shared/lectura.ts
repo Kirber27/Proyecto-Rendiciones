@@ -44,6 +44,58 @@ Responde SOLO con un JSON con esta forma ("documentos" es tu inventario: uno por
  "dudas":[]}`
 }
 
+// ---- Esquema para structured outputs (output_config.format) ----
+// La API garantiza que la respuesta cumple este JSON Schema. Todos los campos son obligatorios y
+// sin propiedades extra (requisito de structured outputs); lo que no se lea va vacío / 0 / null.
+const texto_ = { type: 'string' }
+const numero_ = { type: 'number' }
+const nulable = (t: object) => ({ anyOf: [t, { type: 'null' }] })
+const objeto = (props: Record<string, object>) => ({
+  type: 'object',
+  properties: props,
+  required: Object.keys(props),
+  additionalProperties: false,
+})
+
+export const ESQUEMA_SALIDA = objeto({
+  documentos: {
+    type: 'array',
+    items: objeto({
+      foto: { type: 'integer' },
+      tipo: texto_,
+      proveedor: texto_,
+      numero: texto_,
+      fecha: texto_,
+      monto: numero_,
+    }),
+  },
+  solicitante: texto_,
+  nro: nulable({ type: 'integer' }),
+  fecha: texto_,
+  empresa: texto_,
+  fondo: texto_,
+  totalFormulario: nulable(numero_),
+  lineas: {
+    type: 'array',
+    items: objeto({
+      fecha: texto_,
+      tipo: {
+        type: 'string',
+        enum: ['Factura', 'Boleta', 'Boleta de honorarios', 'Transferencia'],
+      },
+      proveedor: texto_,
+      rut: texto_,
+      numero: texto_,
+      neto: numero_,
+      iva: numero_,
+      exento: numero_,
+      detalle: texto_,
+      subcuenta: texto_,
+    }),
+  },
+  dudas: { type: 'array', items: texto_ },
+}) as { [k: string]: unknown }
+
 // ---- Forma de la respuesta (tolerante: el modelo puede mandar números como texto o null) ----
 
 const texto = z
@@ -61,7 +113,7 @@ const DocumentoSchema = z.object({
   monto,
 })
 
-const LineaSchema = z.object({
+export const LineaSchema = z.object({
   fecha: texto,
   tipo: texto,
   proveedor: texto,

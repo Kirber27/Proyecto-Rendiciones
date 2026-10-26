@@ -30,7 +30,10 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 - [ ] **Correo de Supabase por defecto**: tiene límite bajo de envíos por hora y en proyectos nuevos solo envía a correos del equipo del proyecto. Sirve para desarrollo; para los usuarios reales configurar SMTP propio (M365 de Heca) en *Authentication → SMTP* (9.3).
 - [ ] **Plantilla del correo de acceso**: en *Authentication → Email Templates → Magic Link* incluir el código `{{ .Token }}` (además del enlace) y textos en español. Agregar `http://localhost:5173` en *URL Configuration → Redirect URLs* para que el enlace funcione en desarrollo.
 - [ ] **Proyecto de producción separado**: el actual es de desarrollo. Antes de usar datos reales, crear otro proyecto y aplicar las mismas migraciones (9.1).
-- [ ] **`supabase/functions/deno.json`** con import map `"zod": "npm:zod@4"` para que `_shared/lectura.ts` funcione en Deno — en 2.5.
+- [x] **Import map de la Edge Function** _(2.5)_: `supabase/functions/leer-rendicion/deno.json` (zod, SDK de Anthropic, supabase-js con versiones fijas).
+- [ ] **Tamaño del cuerpo de la lectura**: hasta 20 imágenes JPEG en base64 (≈ 10–16 MB). Si Supabase rechaza el cuerpo por tamaño, bajar `MAX_IMAGENES_LECTURA` o subir las fotos a Storage antes de leer.
+- [x] **Costo y tiempo de cada lectura** _(medido 2026-10-26)_: DHE-042 = 16 s, ≈ US$ 0,043 (9.206 / 329 tokens). Con ~18 rendiciones al mes, < US$ 2/mes. Se mantiene `claude-opus-5-5` + `medium`; revisar `lecturas_ia` con fotos reales de celular (más resolución = más tokens).
+- [ ] **SDK de Anthropic en 0.133.0** (fijado por antigüedad ≥ 2 semanas). Existe la serie 1.x (octubre 2026): evaluar actualizar con la guía `upgrade` cuando tenga algunas semanas.
 - [ ] **Scripts de instalación bloqueados por npm** (`fsevents`, `@parcel/watcher`): no afectan hoy; si falla el watch de Sass, `npm approve-scripts`.
 - [ ] **Tabla de gastos ancha en escritorio**: con Cuenta y C.C. scrollea horizontal (igual que el prototipo). Evaluar en el ajuste de UI (columnas compactas o detalle desplegable).
 - [ ] **Recortes con fotos de baja resolución**: no se agrandan, así que aportan poco en fotos de ~1200 px. Evaluar con fotos reales de celular cuando funcione la lectura (2.5).
@@ -39,6 +42,8 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 - [ ] **Fecha de pago aproximada en el pozo FIFO**: cuando una rendición se paga con el pozo se usa la fecha del último pago que lo alimentó, no necesariamente el que la cubrió. Si tesorería necesita exactitud, modelar el pozo como cola de pagos (4.x o 6.x).
 - [ ] **Montos con punto decimal en cartolas CSV** _(detectado en 7.1, también ocurre en el prototipo)_: `num("70389.00")` da 7.038.900 (lee el punto como miles). No afecta montos chilenos (`70.389`, `70.389,00`) ni celdas numéricas de Excel. Corrección propuesta: si el texto termina en `.` + 1–2 dígitos y no tiene coma, tratar el punto como decimal (en CLP un separador de miles siempre va seguido de 3 dígitos). Rompe la paridad con `num("3.5")` del prototipo, por eso queda para decidir. Validar en 7.3 con cartolas reales de Banco Internacional, BancoEstado y Scotiabank.
 - [ ] **Conciliación con apellidos compartidos** _(7.2, igual que el prototipo)_: si la glosa nombra a "MARIO ROJAS" y hay pagos o rendiciones de Mario Rojas y de Laura Rojas por el mismo monto, ambos coinciden ("rojas") y no se propone nada. Mejora posible: preferir el candidato con más palabras coincidentes cuando hay uno solo con el máximo. Rompe la paridad; decidir con casos reales de tesorería.
+
+- [ ] **Fotos huérfanas en Storage** _(2.7)_: si alguien sube fotos y nunca termina de enviar, o quita una foto después de subirla, el archivo queda en `respaldos/` sin rendición. No afecta el funcionamiento; limpiar con una tarea programada (archivos sin fila en `respaldos` con más de 7 días).
 
 ## Decisiones abiertas
 

@@ -9,5 +9,5 @@ Requiere: 01. Puede adelantarse si se necesita cargar correos antes de abrir la 
 - [x] **8.3 PerfilesView: tarjetas + tabla editable + buscador** _(R1, R2.1–R2.4)_ — `services/personas.ts`, `views/PerfilesView.vue` (+ tests).
 - [x] **8.4 Eliminar / restaurar** _(R2.5, R2.6)_ — confirmación en línea; eliminar un tesorero libera el cupo.
 - [x] **8.5 Agregar persona** _(R3)_ — `components/perfiles/FormPersonaNueva.vue` (código sugerido, todos los problemas juntos, función inicial).
-- [ ] **8.6 Cuentas y vínculo manual** _(R4.1)_ — RPC listas (`listar_cuentas`, `vincular_cuenta`) y servicio; falta la sección plegable en la pantalla.
+- [x] **8.6 Cuentas y vínculo manual** _(R4.1)_ — `components/perfiles/CuentasUsuario.vue`: sección plegable (se abre sola si hay cuentas sin persona), vincular/desvincular; la propia cuenta no se puede desvincular desde aquí.
 - [ ] **8.7 (Opcional) Invitaciones por correo** _(R4.2)_

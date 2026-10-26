@@ -56,6 +56,8 @@ const servicio = vi.hoisted(() => ({
   asignarRol: vi.fn(),
   eliminarPersona: vi.fn(),
   restaurarPersona: vi.fn(),
+  listarCuentas: vi.fn(),
+  vincularCuenta: vi.fn(),
 }))
 vi.mock('@/services/personas', () => servicio)
 vi.mock('@/services/catalogos', () => ({
@@ -70,13 +72,29 @@ async function montar() {
   return w
 }
 const filas = (w: Awaited<ReturnType<typeof montar>>) =>
-  w.findAll('tbody tr').map((tr) => tr.find('td').text())
+  w.find('table').findAll('tbody tr').map((tr) => tr.find('td').text())
 const mensaje = (w: Awaited<ReturnType<typeof montar>>) => w.find('[role="status"]').text()
 
 beforeEach(() => {
   setActivePinia(createPinia())
   Object.values(servicio).forEach((f) => f.mockReset())
   servicio.listarPersonasPerfil.mockResolvedValue(structuredClone(base))
+  servicio.listarCuentas.mockResolvedValue([
+    {
+      userId: 'u-a',
+      email: 'kira@ejemplo.cl',
+      ultimoIngreso: '2026-10-26T10:00:00Z',
+      personaId: 'a',
+      personaNombre: 'Kira Admin',
+    },
+    {
+      userId: 'u-x',
+      email: 'otro.correo@ejemplo.cl',
+      ultimoIngreso: null,
+      personaId: null,
+      personaNombre: null,
+    },
+  ])
 })
 
 describe('PerfilesView', () => {
@@ -87,7 +105,7 @@ describe('PerfilesView', () => {
     expect(w.text()).toContain('Personas eliminadas (1)')
     const chips = w.findAll('.chip').map((c) => c.text())
     expect(chips.slice(0, 3)).toEqual(['1', '1', '1']) // tarjetas por función
-    expect(chips.slice(3)).toEqual(['Vinculada', 'Sin correo', 'Sin ingresar']) // columna Cuenta
+    expect(chips.slice(3, 6)).toEqual(['Vinculada', 'Sin correo', 'Sin ingresar']) // columna Cuenta
   })
 
   it('busca por nombre o correo sin tildes', async () => {
@@ -194,5 +212,23 @@ describe('PerfilesView', () => {
       .trigger('click')
     await flushPromises()
     expect(mensaje(w)).toBe('La persona no existe o no estaba eliminada.')
+  })
+
+  it('cuentas: se abren si hay alguna sin vincular y se vinculan a mano', async () => {
+    const w = await montar()
+    const det = w.findAll('details').find((d) => d.text().includes('Cuentas de usuario'))!
+    expect(det.attributes('open')).toBeDefined()
+    expect(det.text()).toContain('1 sin vincular')
+    await w.find('select[aria-label="Persona de la cuenta otro.correo@ejemplo.cl"]').setValue('s')
+    await flushPromises()
+    expect(servicio.vincularCuenta).toHaveBeenCalledWith('u-x', 's')
+    expect(mensaje(w)).toBe('Cuenta otro.correo@ejemplo.cl vinculada con Sara Solicitante.')
+  })
+
+  it('cuentas: elegir "Sin vincular" desvincula', async () => {
+    const w = await montar()
+    await w.find('select[aria-label="Persona de la cuenta otro.correo@ejemplo.cl"]').setValue('')
+    await flushPromises()
+    expect(servicio.vincularCuenta).toHaveBeenCalledWith('u-x', null)
   })
 })

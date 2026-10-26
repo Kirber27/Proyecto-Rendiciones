@@ -625,6 +625,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _clp: { Args: { n: number }; Returns: string }
       _exigir_admin: { Args: never; Returns: undefined }
       _vincular_por_correo: {
         Args: { p_persona_id: string }
@@ -638,6 +639,7 @@ export type Database = {
         Returns: string
       }
       eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
+      enviar_rendicion: { Args: { p: Json }; Returns: string }
       es_admin: { Args: never; Returns: boolean }
       es_tesoreria: { Args: never; Returns: boolean }
       guardar_persona: { Args: { p: Json }; Returns: string }
