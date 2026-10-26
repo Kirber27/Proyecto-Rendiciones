@@ -1,6 +1,7 @@
 // Pagos: lectura compartida por Carpetas, Libro, Personas y (más adelante) Banco.
 // RLS hace que un solicitante solo reciba sus pagos. Registrar y eliminar: RPC de la migración 14.
 import type { Json } from '@/lib/database.types'
+import { traerTodo } from '@/lib/paginado'
 import { supabase } from '@/lib/supabase'
 import type { PagoParaAsignar, TipoPago } from '@/types/pagos'
 
@@ -40,11 +41,11 @@ const COLUMNAS_PAGO =
 
 /** Pagos de una persona o, sin `personaId`, todos los visibles. */
 export async function leerPagos(personaId?: string): Promise<Pago[]> {
-  let q = supabase.from('pagos').select(COLUMNAS_PAGO)
-  q = personaId ? q.eq('persona_id', personaId) : q.limit(10000)
-  const { data, error } = await q
-  if (error) throw new Error(error.message)
-  return ((data ?? []) as FilaPago[]).map(aPago)
+  const filas = await traerTodo<FilaPago>((desde, hasta) => {
+    const q = supabase.from('pagos').select(COLUMNAS_PAGO)
+    return (personaId ? q.eq('persona_id', personaId) : q).order('id').range(desde, hasta)
+  })
+  return filas.map(aPago)
 }
 
 export interface NuevoPago {

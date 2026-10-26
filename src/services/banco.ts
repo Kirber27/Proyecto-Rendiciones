@@ -1,5 +1,6 @@
 // Banco (spec 07): lectura del archivo de cartola, cartolas guardadas y RPC de la migración 15.
 import type { Json } from '@/lib/database.types'
+import { traerTodo } from '@/lib/paginado'
 import { supabase } from '@/lib/supabase'
 import type {
   AsignacionCargo,
@@ -11,8 +12,6 @@ import type {
 const lanzar = (error: { message: string } | null) => {
   if (error) throw new Error(error.message)
 }
-
-const POR_PAGINA = 1000
 
 export const ERROR_LECTURA =
   'No se pudo leer el archivo. Descárgalo del banco en formato Excel o CSV.'
@@ -36,19 +35,14 @@ export async function leerCartolas(): Promise<{
 }> {
   const cs = await supabase.from('cartolas').select('id, nombre_archivo, medio_pago_id, creado_en')
   lanzar(cs.error)
-  // La API devuelve como máximo 1.000 filas por consulta: se pide por páginas.
-  const filas = []
-  for (let desde = 0; ; desde += POR_PAGINA) {
-    const { data, error } = await supabase
+  const filas = await traerTodo((desde, hasta) =>
+    supabase
       .from('cartola_movimientos')
       .select('id, cartola_id, idx, fecha, descripcion, referencia, cargo, abono, ignorado')
       .order('cartola_id')
       .order('idx')
-      .range(desde, desde + POR_PAGINA - 1)
-    lanzar(error)
-    filas.push(...(data ?? []))
-    if ((data?.length ?? 0) < POR_PAGINA) break
-  }
+      .range(desde, hasta),
+  )
   return {
     cartolas: (cs.data ?? []).map((c) => ({
       id: c.id,

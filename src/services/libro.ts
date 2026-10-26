@@ -2,6 +2,7 @@
 import type { FilaLibro, LineaBase } from '@/domain/libro'
 import { limpiarRendicion } from '@/domain/rendicion'
 import type { Json } from '@/lib/database.types'
+import { traerTodo } from '@/lib/paginado'
 import { supabase } from '@/lib/supabase'
 import type { BorradorRendicion } from '@/types/rendicion'
 
@@ -11,15 +12,17 @@ const lanzar = (error: { message: string } | null) => {
 
 /** Aprobadas y eliminadas (las eliminadas, para el filtro "Eliminadas" y restaurar). */
 export async function listarLibro(): Promise<FilaLibro[]> {
-  const { data, error } = await supabase
-    .from('v_rendiciones')
-    .select(
-      'id, folio, persona_id, persona_nombre, nro, fecha, empresa_id, total, estado, origen, exportada, decidido_en, n_respaldos',
-    )
-    .in('estado', ['aprobada', 'eliminada'])
-    .limit(10000)
-  lanzar(error)
-  return (data ?? []).map((r) => ({
+  const data = await traerTodo((desde, hasta) =>
+    supabase
+      .from('v_rendiciones')
+      .select(
+        'id, folio, persona_id, persona_nombre, nro, fecha, empresa_id, total, estado, origen, exportada, decidido_en, n_respaldos',
+      )
+      .in('estado', ['aprobada', 'eliminada'])
+      .order('id')
+      .range(desde, hasta),
+  )
+  return data.map((r) => ({
     id: r.id!,
     folio: r.folio ?? '',
     personaId: r.persona_id!,
@@ -40,14 +43,17 @@ export async function listarLibro(): Promise<FilaLibro[]> {
 export async function leerLineas(ids: readonly string[]): Promise<Map<string, LineaBase[]>> {
   const mapa = new Map<string, LineaBase[]>()
   for (let i = 0; i < ids.length; i += 80) {
-    const { data, error } = await supabase
-      .from('rendicion_lineas')
-      .select(
-        'rendicion_id, orden, fecha, tipo, proveedor, numero, neto, iva, exento, otros, detalle, subcuenta_id, cuenta_id, centro_costo_id',
-      )
-      .in('rendicion_id', ids.slice(i, i + 80))
-    lanzar(error)
-    for (const { rendicion_id, ...l } of data ?? []) {
+    const data = await traerTodo((desde, hasta) =>
+      supabase
+        .from('rendicion_lineas')
+        .select(
+          'id, rendicion_id, orden, fecha, tipo, proveedor, numero, neto, iva, exento, otros, detalle, subcuenta_id, cuenta_id, centro_costo_id',
+        )
+        .in('rendicion_id', ids.slice(i, i + 80))
+        .order('id')
+        .range(desde, hasta),
+    )
+    for (const { rendicion_id, ...l } of data) {
       const lista = mapa.get(rendicion_id) ?? []
       lista.push(l)
       mapa.set(rendicion_id, lista)

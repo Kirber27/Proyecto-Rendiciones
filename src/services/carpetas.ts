@@ -2,6 +2,7 @@
 // y el índice de carpetas para tesorería. RLS hace que un solicitante solo reciba lo suyo.
 import { asignarPagos, type Asignacion } from '@/domain/asignacion'
 import type { RendicionCarpeta } from '@/domain/carpeta'
+import { traerTodo } from '@/lib/paginado'
 import { supabase } from '@/lib/supabase'
 import type { RendicionParaPago } from '@/types/pagos'
 import type { EventoRendicion } from '@/types/rendicion'
@@ -16,10 +17,6 @@ export interface DatosCarpeta {
   asignacion: Asignacion
   /** Folio por id (para mostrar a qué rendiciones se vinculó cada pago). */
   folios: Map<string, string>
-}
-
-const lanzar = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message)
 }
 
 /** Solo las aprobadas cuentan para el estado de pago. */
@@ -46,16 +43,19 @@ export const paraPago = (
 /** Todo lo de la carpeta de una persona. */
 export async function leerCarpeta(personaId: string): Promise<DatosCarpeta> {
   const [rs, ps] = await Promise.all([
-    supabase
-      .from('v_rendiciones')
-      .select(
-        'id, folio, persona_id, nro, fecha, total, estado, aprobacion_anulada, origen, n_respaldos, nota_tesoreria',
-      )
-      .eq('persona_id', personaId),
+    traerTodo((desde, hasta) =>
+      supabase
+        .from('v_rendiciones')
+        .select(
+          'id, folio, persona_id, nro, fecha, total, estado, aprobacion_anulada, origen, n_respaldos, nota_tesoreria',
+        )
+        .eq('persona_id', personaId)
+        .order('id')
+        .range(desde, hasta),
+    ),
     leerPagos(personaId),
   ])
-  lanzar(rs.error)
-  const filas = (rs.data ?? []).map((r) => ({
+  const filas = rs.map((r) => ({
     ...r,
     id: r.id!,
     persona_id: r.persona_id!,
@@ -69,13 +69,16 @@ export async function leerCarpeta(personaId: string): Promise<DatosCarpeta> {
   const eventos = new Map<string, EventoRendicion[]>()
   const ids = filas.map((r) => r.id)
   for (let i = 0; i < ids.length; i += 80) {
-    const { data, error } = await supabase
-      .from('rendicion_eventos')
-      .select('rendicion_id, evento, nota, creado_en')
-      .in('rendicion_id', ids.slice(i, i + 80))
-      .order('creado_en')
-    lanzar(error)
-    for (const e of data ?? []) {
+    const data = await traerTodo((desde, hasta) =>
+      supabase
+        .from('rendicion_eventos')
+        .select('rendicion_id, evento, nota, creado_en')
+        .in('rendicion_id', ids.slice(i, i + 80))
+        .order('creado_en')
+        .order('id')
+        .range(desde, hasta),
+    )
+    for (const e of data) {
       const lista = eventos.get(e.rendicion_id) ?? []
       lista.push({ evento: e.evento, nota: e.nota, fecha: e.creado_en })
       eventos.set(e.rendicion_id, lista)
@@ -110,12 +113,16 @@ export interface ResumenIndice {
 
 /** Índice de carpetas (tesorería): conteos y saldos de todas las personas. */
 export async function leerIndiceCarpetas(): Promise<ResumenIndice> {
-  const [rs, ps] = await Promise.all([
-    supabase.from('rendiciones').select('id, persona_id, nro, fecha, total, estado').limit(10000),
+  const [filas, ps] = await Promise.all([
+    traerTodo((desde, hasta) =>
+      supabase
+        .from('rendiciones')
+        .select('id, persona_id, nro, fecha, total, estado')
+        .order('id')
+        .range(desde, hasta),
+    ),
     leerPagos(),
   ])
-  lanzar(rs.error)
-  const filas = rs.data ?? []
   const conteos = new Map<string, { rendiciones: number; porAprobar: number }>()
   for (const r of filas) {
     if (r.estado === 'eliminada') continue

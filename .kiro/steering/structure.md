@@ -34,6 +34,7 @@ Proyecto-Rendiciones/
 │   │   ├── supabase.ts           cliente único
 │   │   ├── imagenes.ts           canvas: reducir y recortar fotos
 │   │   ├── descargar.ts          descargar un Blob generado (Excel, PDF)
+│   │   ├── paginado.ts           traerTodo: listas por páginas (la API corta en 1.000 filas)
 │   │   └── database.types.ts     generado, no editar a mano
 │   ├── domain/                   lógica pura, sin Vue ni Supabase, 100% testeable
 │   │   ├── formato.ts            norm, tr, raw, num, miles, clp, fdate, parseDate, dnum, semana, mes
