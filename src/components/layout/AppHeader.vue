@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import AppChip from '@/components/ui/AppChip.vue'
+import { useAuthStore } from '@/stores/auth'
+import { NOMBRE_ROL } from '@/types/roles'
 import AppTabs from './AppTabs.vue'
-import DevRolSelector from './DevRolSelector.vue'
 import ThemeToggle from './ThemeToggle.vue'
 
 defineProps<{ badges?: Record<string, number> }>()
 
-const esDev = import.meta.env.DEV
+const auth = useAuthStore()
+const router = useRouter()
+
+async function salir() {
+  await auth.salir()
+  await router.replace({ name: 'ingresar' })
+}
 </script>
 
 <template>
@@ -17,8 +26,20 @@ const esDev = import.meta.env.DEV
       </RouterLink>
       <AppTabs :badges="badges" />
       <div class="ms-auto d-flex align-items-center gap-2">
-        <DevRolSelector v-if="esDev" />
+        <span class="small text-body-secondary d-none d-sm-inline">{{ auth.nombre }}</span>
+        <AppChip v-if="auth.persona" tono="info" class="d-none d-md-inline-block">
+          {{ NOMBRE_ROL[auth.rol] }}
+        </AppChip>
         <ThemeToggle />
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary border-0"
+          title="Salir"
+          aria-label="Salir"
+          @click="salir"
+        >
+          <i class="bi bi-box-arrow-right" aria-hidden="true" />
+        </button>
       </div>
     </div>
   </header>

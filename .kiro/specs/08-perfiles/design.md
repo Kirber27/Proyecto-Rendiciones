@@ -1,6 +1,6 @@
 # 08 · Perfiles — Diseño
 
-- `domain/personas.ts`: `sugerirCodigo(nombre, usados)` (porta el del prototipo: inicial + 2 letras del apellido; si está usado, prueba variar la 3ª letra A–Z), `validarPersonaNueva(...)`. Tests.
+- `domain/personas.ts`: `sugerirCodigo(nombre, usados)` (porta el del prototipo: inicial + 2 letras del apellido; si está usado, prueba variar la 3ª letra A–Z), `validarPersonaNueva(...)`, `validarCorreo`, `cambiarFuncion` (devuelve a quién degradar si se nombra Tesorero) y `puedeEliminar`. Las mismas reglas se repiten en las RPC (la base es la que manda); el dominio sirve para avisar en la UI antes de llamar. Tests.
 - RPC (migración `0014_rpc_perfiles.sql`, todas `es_admin()`):
   - `guardar_persona(p jsonb)` — alta/edición (nombre, correo, código).
   - `asignar_rol(persona_id, rol)` — en transacción: si `rol = 'tesorero'` degrada al actual; si deja 0 administradores → `raise 'ultimo_admin'`.

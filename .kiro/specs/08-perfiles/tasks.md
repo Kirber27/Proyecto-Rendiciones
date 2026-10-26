@@ -2,7 +2,8 @@
 
 Requiere: 01. Puede adelantarse si se necesita cargar correos antes de abrir la app a los solicitantes.
 
-- [ ] **8.1 `domain/personas.ts` + tests** _(R3.1, R3.2)_
+- [x] **8.1 `domain/personas.ts` + tests** _(R3.1, R3.2)_
+  - `sugerirCodigo` (paridad con el prototipo), `validarPersonaNueva` (todos los problemas juntos; avisa si la persona está eliminada), `correoValido`, `validarCorreo` (único), `cambiarFuncion` (un solo Tesorero, al menos un Administrador), `puedeEliminar`.
 - [ ] **8.2 RPCs de perfiles + tests SQL** _(R2.3, R2.4, R2.5, R4.1)_ — un solo tesorero, último admin.
 - [ ] **8.3 PerfilesView: tarjetas + tabla editable + buscador** _(R1, R2.1–R2.4)_
 - [ ] **8.4 Eliminar / restaurar** _(R2.5, R2.6)_

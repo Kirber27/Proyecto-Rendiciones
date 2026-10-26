@@ -4,7 +4,7 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 
 ## Bloqueos (esperan algo externo)
 
-- [ ] **Proyecto en Supabase Cloud** _(desde 2026-10-21)_ — lo crea el usuario desde la web (región sugerida `sa-east-1`).
+- [x] **Proyecto en Supabase Cloud** _(desde 2026-10-21; creado 2026-10-26: `vyornqwlmoqatjoverlh`, desarrollo)_ — vinculado y con las migraciones 1.5–1.7 aplicadas (2026-10-26).
   - Bloquea: **1.5–1.10** (esquema, RLS, seed, auth, catálogos, historial), **2.5** (Edge Function de lectura), **2.6–2.8** (flujo real de Rendir gastos), y todo lo que guarda o lee datos en 03–08.
   - Se necesita: `project ref`, URL, `anon key` (→ `.env.local`) y `service_role key` solo en variables de entorno locales para el importador del historial (nunca en el repo ni en el chat).
   - Al desbloquear: `supabase init` → `supabase link` → migraciones (1.5) → seguir el orden del índice.
@@ -13,16 +13,20 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 
 | Qué | Dónde | Se resuelve en |
 | --- | --- | --- |
-| Selector "Dev: rol" para probar funciones sin auth | `src/components/layout/DevRolSelector.vue`, usado en `AppHeader.vue` | 1.8 (eliminar) |
-| `useAuthStore` mínimo (solo `rol`, empieza en `solicitante`) | `src/stores/auth.ts` | 1.8 (sesión real + persona vinculada) |
-| Guard sin verificación de sesión (no redirige a `/ingresar`) | `src/router/index.ts` | 1.8 |
-| `LoginView` placeholder | `src/views/LoginView.vue` | 1.8 |
-| Catálogos de demo con personas ficticias | `src/dev/catalogosDemo.ts` (lo usan `/_estilos` y tests) | 1.9 (store real; la demo puede quedar solo para tests) |
+| ~~Selector "Dev: rol"~~ | eliminado | ✔ 1.8 (2026-10-26) |
+| ~~`useAuthStore` mínimo~~ | sesión real + persona vinculada | ✔ 1.8 |
+| ~~Guard sin verificación de sesión~~ | redirige a `/ingresar?volver=…` | ✔ 1.8 |
+| ~~`LoginView` placeholder~~ | correo + código | ✔ 1.8 |
+| ~~Catálogos de demo en `/_estilos`~~ | `/_estilos` usa el store real; `src/dev/catalogosDemo.ts` queda solo para tests | ✔ 1.9 (2026-10-26) |
 | Vistas "En construcción" | `src/views/*View.vue` | cada spec |
 | Página de muestra `/_estilos` (solo dev) | `src/views/EstilosView.vue` | revisar al terminar el hito 1: dejarla como catálogo de componentes o borrarla |
 
 ## Pendientes técnicos
 
+- [x] **Activar el Auth Hook en el panel de Supabase** _(activado 2026-10-26)_: Authentication → Hooks → *Before User Created* → función `public.hook_validar_correo`. Sin esto, cualquier correo podría crear cuenta (aunque sin persona vinculada no ve datos). Revisar también en Authentication: *Site URL* `http://localhost:5173` (dev) y plantilla de correo en español (1.8).
+- [ ] **Correo de Supabase por defecto**: tiene límite bajo de envíos por hora y en proyectos nuevos solo envía a correos del equipo del proyecto. Sirve para desarrollo; para los usuarios reales configurar SMTP propio (M365 de Heca) en *Authentication → SMTP* (9.3).
+- [ ] **Plantilla del correo de acceso**: en *Authentication → Email Templates → Magic Link* incluir el código `{{ .Token }}` (además del enlace) y textos en español. Agregar `http://localhost:5173` en *URL Configuration → Redirect URLs* para que el enlace funcione en desarrollo.
+- [ ] **Proyecto de producción separado**: el actual es de desarrollo. Antes de usar datos reales, crear otro proyecto y aplicar las mismas migraciones (9.1).
 - [ ] **`supabase/functions/deno.json`** con import map `"zod": "npm:zod@4"` para que `_shared/lectura.ts` funcione en Deno — en 2.5.
 - [ ] **Scripts de instalación bloqueados por npm** (`fsevents`, `@parcel/watcher`): no afectan hoy; si falla el watch de Sass, `npm approve-scripts`.
 - [ ] **Tabla de gastos ancha en escritorio**: con Cuenta y C.C. scrollea horizontal (igual que el prototipo). Evaluar en el ajuste de UI (columnas compactas o detalle desplegable).

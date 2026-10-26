@@ -41,6 +41,11 @@ export const catalogosDemo: Catalogos = {
     { id: 40, nombre: 'Instituto Salud Publica (CDA)', cuentaSugeridaId: 9 },
     { id: 41, nombre: 'TAG ', cuentaSugeridaId: null },
   ],
+  mediosPago: [
+    { id: 1, nombre: 'Banco Estado HGI' },
+    { id: 2, nombre: 'Banco Internacional HGI ' },
+    { id: 3, nombre: 'No Genera Pago ' },
+  ],
 }
 
 /** Borrador de ejemplo: caso de prueba documentado (Nº 42, boleta ISP de $70.389). */

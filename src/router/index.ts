@@ -91,9 +91,11 @@ export const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 })
 
-router.beforeEach((to) => {
-  if (to.meta.publica) return true
-  // La verificación de sesión (sin sesión → /ingresar) se agrega en la tarea 1.8.
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  if (!auth.listo) await auth.init()
+  if (to.meta.publica) return auth.conSesion && to.name === 'ingresar' ? INICIO : true
+  if (!auth.conSesion)
+    return { name: 'ingresar', query: to.fullPath !== INICIO ? { volver: to.fullPath } : {} }
   return puedeEntrar(to.meta.roles, auth.rol) ? true : INICIO
 })

@@ -13,11 +13,12 @@ Proyecto-Rendiciones/
 ├── supabase/
 │   ├── config.toml
 │   ├── migrations/               SQL versionado: AAAAMMDDHHMMSS_nombre.sql
-│   ├── seed.sql                  catálogos (empresas, cuentas, subcuentas, C.C., bancos, personas)
 │   └── functions/
 │       ├── _shared/              código puro compartido con el frontend (alias @shared): lectura.ts
 │       └── leer-rendicion/       Edge Function de lectura con IA
 ├── scripts/
+│   ├── generar-datos-iniciales.mjs  CLAUDE/datos → migración de catálogos y personas
+│   ├── probar-migraciones.mjs    migraciones + RLS sobre PGlite (sin Docker)
 │   └── importar-historial.ts     carga única del historial 2026 (service role, idempotente)
 ├── public/
 ├── src/
@@ -43,6 +44,7 @@ Proyecto-Rendiciones/
 │   │   ├── exportar.ts           filas del Excel de tesorería (hoja "Rendiciones")
 │   │   ├── reporte.ts            contenido del reporte PDF por rendición
 │   │   ├── carpeta.ts            estado actual, grupos, línea de tiempo e índice de carpetas
+│   │   ├── personas.ts           código sugerido, alta, correos, funciones (un tesorero, ≥1 admin)
 │   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
 │   │   ├── recortes.ts           plan de recortes para la lectura IA
 │   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador

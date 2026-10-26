@@ -56,6 +56,8 @@ npm run typecheck    # vue-tsc --build
 npm run format       # prettier --write src/
 npm run db:types     # supabase gen types typescript --linked > src/lib/database.types.ts
 npm run db:push      # supabase db push (aplica migraciones pendientes al proyecto vinculado)
+npm run db:probar    # aplica las migraciones sobre PGlite y prueba RLS/triggers (sin Docker)
+npm run db:datos     # regenera la migración de datos iniciales desde CLAUDE/datos
 ```
 
 ## Restricciones

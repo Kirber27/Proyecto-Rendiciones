@@ -16,6 +16,13 @@ watch(
     if (!route.meta.publica && !puedeEntrar(route.meta.roles, rol)) router.replace('/')
   },
 )
+// Si la sesión se cierra (en otra pestaña o al vencer), volver al ingreso.
+watch(
+  () => auth.conSesion,
+  (si) => {
+    if (!si && auth.listo && !route.meta.publica) router.replace({ name: 'ingresar' })
+  },
+)
 </script>
 
 <template>
@@ -23,6 +30,10 @@ watch(
   <template v-else>
     <AppHeader />
     <main class="app-wrap pt-4 pb-5">
+      <div v-if="auth.conSesion && !auth.persona" class="alert alert-warning" role="alert">
+        Tu cuenta ({{ auth.session?.user.email }}) no está vinculada a ninguna persona. Pide a
+        tesorería que revise tu correo en Perfiles.
+      </div>
       <RouterView />
     </main>
   </template>

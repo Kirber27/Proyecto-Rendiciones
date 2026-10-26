@@ -1,17 +1,20 @@
 <script setup lang="ts">
-// Página de muestra del tema (solo desarrollo): sirve para comparar con CLAUDE/app/rendiciones-heca.html
-// en claro y oscuro. Datos ficticios.
-import { ref } from 'vue'
+// Página de muestra (solo desarrollo): tema comparado con CLAUDE/app/rendiciones-heca.html y componentes
+// con los catálogos reales de la base. Datos de tablas y tarjetas: ficticios.
+import { onMounted, ref, watch } from 'vue'
+import { RespuestaLecturaSchema } from '@shared/lectura'
 import FotoDrop from '@/components/rendicion/FotoDrop.vue'
 import RendicionEditor from '@/components/rendicion/RendicionEditor.vue'
 import AppChip from '@/components/ui/AppChip.vue'
 import AppLightbox from '@/components/ui/AppLightbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import KpiTile from '@/components/ui/KpiTile.vue'
-import { borradorDemo, catalogosDemo } from '@/dev/catalogosDemo'
-import { validarRendicion } from '@/domain/rendicion'
+import { hoy } from '@/domain/formato'
+import { aBorrador } from '@/domain/lectura'
+import { lineaVacia, validarRendicion } from '@/domain/rendicion'
 import { prepararImagenes } from '@/lib/imagenes'
-import type { ModoEditor } from '@/types/rendicion'
+import { useCatalogosStore } from '@/stores/catalogos'
+import type { BorradorRendicion, ModoEditor } from '@/types/rendicion'
 
 const zoom = ref<string | null>(null)
 const imagenDemo =
@@ -43,21 +46,60 @@ async function generarRecortes() {
   preparando.value = false
 }
 
-// Editor de rendición con el caso DHE-042
+// Editor de rendición con el caso DHE-042, armado como si viniera de la lectura IA
+// (así se ve el mapeo de nombres a ids con los catálogos reales).
+const cat = useCatalogosStore()
+onMounted(() => cat.cargar())
+const respuestaDemo = RespuestaLecturaSchema.parse({
+  documentos: [{ foto: 1, tipo: 'Boleta', proveedor: 'ISP', numero: '2026101400444231' }],
+  solicitante: 'David Herce',
+  nro: 42,
+  fecha: '2026-10-14',
+  empresa: 'Hecaglobal Instruments SPA',
+  fondo: 'FONDOS POR RENDIR CDA',
+  totalFormulario: 70389,
+  lineas: [
+    {
+      fecha: '2026-10-14',
+      tipo: 'Boleta',
+      proveedor: 'ISP',
+      numero: '2026101400444231',
+      exento: 70389,
+      detalle: 'CDA IMP ADEOR 07',
+      subcuenta: 'Instituto Salud Publica (CDA)',
+    },
+  ],
+  dudas: ['El RUT del proveedor no se lee bien en la boleta.'],
+})
 const modo = ref<ModoEditor>('persona')
-const borrador = ref(borradorDemo())
+const borrador = ref<BorradorRendicion>({
+  personaId: null,
+  nro: '',
+  fecha: '',
+  empresaId: null,
+  fondo: '',
+  totalFormulario: '',
+  lineas: [lineaVacia()],
+  dudas: [],
+  respaldos: [],
+})
 const problemas = ref<string[]>([])
 const fotosDemo = ref([{ url: imagenDemo, quitable: true }])
 function validar() {
   problemas.value = validarRendicion(borrador.value, {
     esTesoreria: modo.value !== 'persona',
-    personasActivas: catalogosDemo.personas.map((p) => p.id),
+    personasActivas: cat.personasActivas,
   })
 }
 function reiniciar() {
-  borrador.value = borradorDemo()
+  borrador.value = aBorrador(respuestaDemo, { catalogos: cat.catalogos, hoy: hoy() })
   problemas.value = []
 }
+watch(
+  () => cat.listo,
+  (listo) => listo && reiniciar(),
+  { immediate: true },
+)
 
 const estados = [
   'Aprobada',
@@ -111,8 +153,8 @@ const sel = ref('MSO-004')
     <div>
       <h1>Muestra del tema</h1>
       <p class="lead-muted">
-        Página de desarrollo para comparar con la maqueta. Cambia el tema con el botón ◐ y el rol de
-        prueba con el selector de arriba a la derecha.
+        Página de desarrollo para comparar con la maqueta. Cambia el tema con el botón ◐ de arriba a
+        la derecha.
       </p>
     </div>
 
@@ -135,7 +177,7 @@ const sel = ref('MSO-004')
       <RendicionEditor
         v-model="borrador"
         :modo="modo"
-        :catalogos="catalogosDemo"
+        :catalogos="cat.catalogos"
         :fotos="fotosDemo"
         :problemas="problemas"
         @quitar-foto="fotosDemo.splice($event, 1)"

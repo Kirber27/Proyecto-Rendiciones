@@ -28,4 +28,6 @@ export interface Catalogos {
   cuentas: OpcionCatalogo[]
   subcuentas: Subcuenta[]
   centrosCosto: OpcionCatalogo[]
+  /** Bancos, cajas y "No Genera Pago" (para pagos y cartolas). */
+  mediosPago: OpcionCatalogo[]
 }

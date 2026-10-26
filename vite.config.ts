@@ -25,5 +25,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.{test,spec}.ts'],
+    // En modo test Vite no lee .env.local: valores ficticios (los tests no llaman a Supabase).
+    env: { VITE_SUPABASE_URL: 'http://supabase.test', VITE_SUPABASE_ANON_KEY: 'clave-de-prueba' },
   },
 })

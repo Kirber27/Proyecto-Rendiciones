@@ -35,7 +35,7 @@ diferidas:      xlsx (tarball cdn.sheetjs.com) jspdf jspdf-autotable   ← se in
 
 ### Restricción de ingreso (R3.3)
 
-Opción elegida: **Auth Hook "before user created"** (función SQL `hook_validar_correo`) que rechaza si el correo no existe en `personas` activas. Alternativa si el hook no está disponible en el plan: `signInWithOtp({ shouldCreateUser: false })` + alta de usuarios por invitación desde Perfiles (Edge Function admin). En el cliente, antes de pedir el código se llama a la RPC pública `correo_habilitado(correo)` para mostrar el mensaje amable.
+Opción elegida: **Auth Hook "Before User Created"** (función SQL `public.hook_validar_correo`) que rechaza con 403 y el mensaje "Tu correo no está habilitado…" si el correo no existe en `personas` activas. **Se activa a mano en el panel** (Authentication → Hooks). El cliente muestra ese mensaje cuando `signInWithOtp` devuelve error. Se descartó la RPC pública `correo_habilitado` porque permitiría a cualquiera averiguar qué correos están registrados. Alternativa si el hook no está disponible en el plan: `shouldCreateUser: false` + invitaciones desde Perfiles.
 
 ### Vínculo cuenta → persona (R3.4)
 
@@ -53,17 +53,18 @@ create function es_admin() returns bool ... mi_rol() = 'administrador'
 
 ## Migraciones (orden)
 
-1. `0001_extensiones_enums.sql` — `citext`, `unaccent`, enums.
-2. `0002_catalogos.sql`
-3. `0003_personas.sql` — tabla, trigger `nombre_norm` (`lower(unaccent(regexp_replace(trim(nombre),'\s+',' ','g')))`), índice único tesorero, helpers de rol, trigger de vínculo, hook de correo.
-4. `0004_rendiciones.sql` — rendiciones, líneas, eventos, respaldos, trigger de `total`.
-5. `0005_pagos_banco.sql`
-6. `0006_lecturas_ia.sql`
-7. `0007_rls.sql` — `enable row level security` + políticas.
-8. `0008_storage.sql` — bucket `respaldos` privado + políticas sobre `storage.objects`.
-9. `0009_rpc_*.sql` — se agregan en los specs de cada pantalla.
+Archivos `supabase/migrations/20261026000001…08`:
+1. `extensiones_tipos` — `citext`, `unaccent`, enums y `public.normalizar()` (equivale a `norm()`).
+2. `catalogos` — centros de costo, cuentas, subcuentas (cuenta sugerida), empresas (C.C. por defecto), medios de pago.
+3. `personas_y_acceso` — personas (`nombre_norm` columna generada), índice único de tesorero, helpers `mi_persona_id/mi_rol/es_tesoreria/es_admin`, trigger de vínculo por correo, hook de correo.
+4. `rendiciones` — rendiciones, líneas, eventos, respaldos y trigger que mantiene `total`.
+5. `pagos_banco` — cartolas, movimientos, pagos (devolución ≤ 0), `pago_rendiciones`, `lecturas_ia`.
+6. `rls` — RLS en todas las tablas y políticas (funciones envueltas en `select` para evaluarse una vez).
+7. `storage` — bucket privado `respaldos` (10 MB, solo imágenes) y políticas por carpeta `<persona_id>/…`.
+8. `datos_iniciales` — **generada** por `scripts/generar-datos-iniciales.mjs` (catálogos, 26 personas del historial sin correo, administrador inicial).
+Las RPC de cada pantalla se agregan como migraciones nuevas en sus specs.
 
-`seed.sql`: catálogos + personas (sin correos; se completan en Perfiles) + una persona administradora de desarrollo (`admin@local.test`).
+Verificación sin Docker: `npm run db:probar` (`scripts/probar-migraciones.mjs`, PGlite).
 
 ## Auth store y router
 
@@ -71,7 +72,8 @@ create function es_admin() returns bool ... mi_rol() = 'administrador'
 // stores/auth.ts
 state: session, persona (id, nombre, codigo, rol), cargando
 getters: rol, esTesoreria, esAdmin, nombre
-actions: init() (getSession + onAuthStateChange), pedirCodigo(correo), verificarCodigo(correo, token), salir()
+actions: init() (getSession + onAuthStateChange; idempotente, el guard la espera), pedirCodigo(correo), verificarCodigo(correo, token), salir()
+// sin persona vinculada → rol 'solicitante' y aviso en pantalla (RLS no le muestra datos)
 ```
 
 ```ts
