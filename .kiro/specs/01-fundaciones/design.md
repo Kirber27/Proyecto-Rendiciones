@@ -96,13 +96,13 @@ Guard: espera `auth.init()`; sin sesión → `/ingresar`; rol no permitido → `
 
 ## Importador del historial
 
-`scripts/importar-historial.ts` (ejecutar con `npx tsx`, variables `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`):
+`scripts/importar-historial.mjs` (`npm run db:historial`; lee `VITE_SUPABASE_URL` de `.env.local` y `SUPABASE_SECRET_KEY` de la terminal; `--ensayo` no escribe):
 
 1. Lee `CLAUDE/datos/historial_2026/*.json` (ops `set` de colecciones `rendiciones` y `pagos`).
 2. Resuelve persona por `norm(solicitante)` (crea si falta, código de `codes.json`).
 3. Resuelve catálogos por `norm`; si no calza, deja `null` y lo reporta.
-4. Upsert de rendición por `folio` (= `doc_id`), reemplaza líneas solo si la rendición es `Histórico` y no tiene eventos posteriores a la importación.
-5. Upsert de pagos por `codigo_hist`, con `pago_rendiciones` según `rends`.
+4. Rendición por `folio` (= `doc_id`): si ya existe **no se toca** (no pisa ediciones); si no, inserta cabecera (aprobada, Histórico), líneas y evento "Ingresada (historial)"; si falla una parte, borra la cabecera para reintentar limpio.
+5. Pago por `codigo_hist`: igual criterio; vínculos en `pago_rendiciones` según `rends`. Banco "No informado" → sin medio de pago y nota en `obs`.
 6. Imprime totales y la lista de anomalías conocidas (RDI-031 sin cuenta, AKO-008 IVA sin neto, 7 pagos sin fecha o 2025).
 
 ## Riesgos / decisiones abiertas

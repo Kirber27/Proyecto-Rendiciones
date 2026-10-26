@@ -45,6 +45,10 @@
 - La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y funciones.
 - **Sin Docker local**: se trabaja contra un proyecto en **Supabase Cloud** (creado desde la web). Migraciones con `supabase link` + `supabase db push`. Si más adelante se separan entornos, un proyecto de desarrollo y otro de producción. Frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
 
+## Requisitos
+
+- **Node 22.12 o superior** (`.nvmrc` = 22; `engines` en `package.json`). Vite 8 y supabase-js en scripts de Node lo exigen.
+
 ## Comandos esperados
 
 ```bash
@@ -58,6 +62,7 @@ npm run db:types     # supabase gen types typescript --linked > src/lib/database
 npm run db:push      # supabase db push (aplica migraciones pendientes al proyecto vinculado)
 npm run db:probar    # aplica las migraciones sobre PGlite y prueba RLS/triggers (sin Docker)
 npm run db:datos     # regenera la migración de datos iniciales desde CLAUDE/datos
+npm run db:historial # importa el historial 2026 (requiere SUPABASE_SECRET_KEY en la terminal; --ensayo no escribe)
 ```
 
 ## Restricciones

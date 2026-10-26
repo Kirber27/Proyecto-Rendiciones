@@ -51,6 +51,9 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - `services/catalogos.ts` (`leerCatalogos` en paralelo + `aCatalogos` filas → dominio) y `stores/catalogos.ts` (carga única compartida, `recargar`, `limpiar` al salir, `personasActivas`). Medios de pago agregados a `Catalogos`.
   - `/_estilos` usa los catálogos reales: el borrador DHE-042 se arma con `aBorrador` desde una respuesta IA simulada. La cuenta sugerida sale de `domain/catalogos.ts`.
 
-- [ ] **1.10 Importador del historial 2026** _(R6.1–R6.3)_
+- [x] **1.10 Importador del historial 2026** _(R6.1–R6.3)_ — importado el 2026-10-26
+  - [x] `scripts/importar-historial.mjs` (`npm run db:historial -- --ensayo` / sin `--ensayo` para importar). Clave secreta solo como variable de entorno en la terminal del usuario.
+  - [x] Migración `20261026000009_nro_cero_historial.sql`: permite Nº 0 solo en registros Histórico (DAR-000).
+  - [x] Ensayo e importación: 182 rendiciones / $ 45.024.174, 612 líneas, 174 pagos / $ 45.045.931 (= esperado). Verificado en la base: 6 saldos del historial exactos, 158 vínculos pago↔rendición, 182 eventos "Ingresada (historial)". Re-ejecutar no duplica (omite folios y códigos existentes).
   - `scripts/importar-historial.ts` idempotente.
   - Correr contra el proyecto de desarrollo, comparar totales con los esperados, correr dos veces y verificar que no duplica.

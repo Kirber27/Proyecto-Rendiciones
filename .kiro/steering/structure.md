@@ -19,7 +19,7 @@ Proyecto-Rendiciones/
 ├── scripts/
 │   ├── generar-datos-iniciales.mjs  CLAUDE/datos → migración de catálogos y personas
 │   ├── probar-migraciones.mjs    migraciones + RLS sobre PGlite (sin Docker)
-│   └── importar-historial.ts     carga única del historial 2026 (service role, idempotente)
+│   └── importar-historial.mjs    carga del historial 2026 (clave secreta, idempotente, --ensayo)
 ├── public/
 ├── src/
 │   ├── main.ts

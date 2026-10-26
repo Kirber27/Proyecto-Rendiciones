@@ -23,6 +23,9 @@ Registro de lo que quedó en pausa, temporal o por resolver. Al cerrar un ítem:
 
 ## Pendientes técnicos
 
+- [x] **Clave secreta expuesta en el chat** _(2026-10-26)_: se eliminó y se creó una nueva. Regla: la clave secreta solo se escribe en la terminal (`export SUPABASE_SECRET_KEY=…` en una línea aparte), nunca en el chat ni en archivos del repo.
+- [ ] **Node de la terminal**: hay un Node 20 en `/usr/local/bin` que tapa al Node 26 de Homebrew. Poner `/opt/homebrew/bin` primero en el `PATH` (`~/.zshrc`) o desinstalar el Node 20 antiguo.
+
 - [x] **Activar el Auth Hook en el panel de Supabase** _(activado 2026-10-26)_: Authentication → Hooks → *Before User Created* → función `public.hook_validar_correo`. Sin esto, cualquier correo podría crear cuenta (aunque sin persona vinculada no ve datos). Revisar también en Authentication: *Site URL* `http://localhost:5173` (dev) y plantilla de correo en español (1.8).
 - [ ] **Correo de Supabase por defecto**: tiene límite bajo de envíos por hora y en proyectos nuevos solo envía a correos del equipo del proyecto. Sirve para desarrollo; para los usuarios reales configurar SMTP propio (M365 de Heca) en *Authentication → SMTP* (9.3).
 - [ ] **Plantilla del correo de acceso**: en *Authentication → Email Templates → Magic Link* incluir el código `{{ .Token }}` (además del enlace) y textos en español. Agregar `http://localhost:5173` en *URL Configuration → Redirect URLs* para que el enlace funcione en desarrollo.

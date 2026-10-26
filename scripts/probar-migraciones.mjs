@@ -29,7 +29,7 @@ await db.exec(`
   create schema extensions;
   create role authenticated nologin; create role anon nologin; create role supabase_auth_admin nologin;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, last_sign_in_at timestamptz, created_at timestamptz default now());
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create schema storage;
@@ -145,8 +145,54 @@ await como(admin, async () => {
   ok((await valor(`select count(*)::int from storage.objects`)) === 1, 'admin: ve todas las fotos')
   await db.query(`insert into public.cartolas (nombre_archivo) values ('x.xlsx')`)
   ok(true, 'admin: carga cartolas')
-  await db.query(`update public.personas set correo = 'mario@ejemplo.cl' where codigo = 'MSO'`)
-  ok(true, 'admin: edita personas')
+  ok((await db.query(`update public.personas set correo = 'manuel@ejemplo.cl' where codigo = 'MGU'`)).affectedRows === 1, 'admin: edita personas')
+})
+
+// ---------- RPC de Perfiles (8.2) ----------
+const huerfana = await valor(`insert into auth.users (email) values ('ana.munoz@ejemplo.cl') returning id`)
+await como(admin, async () => {
+  const ana = await valor(`select public.guardar_persona('{"nombre":"  Ana   Muñoz ","codigo":"amu","correo":"Ana.Munoz@Ejemplo.cl"}')`)
+  const fila = await uno(`select nombre, codigo, correo::text, es_nueva, rol::text, user_id from public.personas where id = $1`, [ana])
+  ok(fila.nombre === 'Ana Muñoz' && fila.codigo === 'AMU' && fila.correo === 'ana.munoz@ejemplo.cl' && fila.es_nueva && fila.rol === 'solicitante', 'guardar_persona: alta normalizada')
+  ok(fila.user_id === huerfana, 'guardar_persona: vincula la cuenta que ya existía con ese correo')
+  await debeFallar(`select public.guardar_persona('{"nombre":"Otra Persona","codigo":"AMU"}')`, 'guardar_persona: código repetido')
+  await debeFallar(`select public.guardar_persona('{"nombre":"david  HERCE","codigo":"DHZ"}')`, 'guardar_persona: persona repetida')
+  await debeFallar(`select public.guardar_persona('{"nombre":"Otra Persona","codigo":"OPE","correo":"ANA.MUNOZ@ejemplo.cl"}')`, 'guardar_persona: correo repetido')
+  await debeFallar(`select public.guardar_persona('{"nombre":"Sinapellido","codigo":"SIN"}')`, 'guardar_persona: exige nombre y apellido')
+  // Edición: cambiar correo conservando la grafía exacta del nombre del historial
+  const dhe = await valor(`select id from public.personas where codigo = 'DHE'`)
+  await db.query(`select public.guardar_persona(jsonb_build_object('id', $1::text, 'nombre', 'David Herce', 'codigo', 'DHE', 'correo', 'david@ejemplo.cl'))`, [dhe])
+  ok((await valor(`select nombre from public.personas where id = $1`, [dhe])) === 'David Herce ', 'guardar_persona: conserva la grafía del historial')
+
+  // Funciones
+  const mso = await valor(`select id from public.personas where codigo = 'MGU'`)
+  const tca = await valor(`select id from public.personas where codigo = 'TCA'`)
+  ok((await valor(`select public.asignar_rol($1, 'tesorero')`, [mso])) === null, 'asignar_rol: primer tesorero')
+  ok((await valor(`select public.asignar_rol($1, 'tesorero')`, [tca])) === mso, 'asignar_rol: nuevo tesorero degrada al anterior')
+  ok((await valor(`select rol::text from public.personas where id = $1`, [mso])) === 'solicitante', 'asignar_rol: el anterior quedó solicitante')
+  const kpi = await valor(`select id from public.personas where codigo = 'KPI'`)
+  await debeFallar(`select public.asignar_rol('${kpi}', 'solicitante')`, 'asignar_rol: no deja sin Administrador')
+  await debeFallar(`select public.eliminar_persona('${kpi}')`, 'eliminar_persona: no al último Administrador')
+
+  // Eliminar / restaurar
+  await db.query(`select public.eliminar_persona($1)`, [tca])
+  const el = await uno(`select eliminada_en is not null as e, rol::text, user_id from public.personas where id = $1`, [tca])
+  ok(el.e && el.rol === 'solicitante', 'eliminar_persona: marca eliminada y libera el cupo de tesorero')
+  await db.query(`select public.restaurar_persona($1)`, [tca])
+  ok((await valor(`select eliminada_en is null from public.personas where id = $1`, [tca])) === true, 'restaurar_persona')
+
+  // Cuentas
+  const cuentas = (await db.query(`select * from public.listar_cuentas()`)).rows
+  ok(cuentas.length === 4 && cuentas.some((c) => c.persona_nombre === 'Ana Muñoz'), 'listar_cuentas: cuentas con su persona')
+  await db.query(`select public.vincular_cuenta($1, $2)`, [extra, mso])
+  ok((await valor(`select codigo from public.personas where user_id = $1`, [extra])) === 'MGU', 'vincular_cuenta')
+  await db.query(`select public.vincular_cuenta($1, null)`, [extra])
+  ok((await valor(`select count(*)::int from public.personas where user_id = $1`, [extra])) === 0, 'vincular_cuenta: desvincular')
+})
+await como(raul, async () => {
+  await debeFallar(`select public.guardar_persona('{"nombre":"Hacker Malo","codigo":"HMA"}')`, 'solicitante: no puede usar guardar_persona')
+  await debeFallar(`select public.asignar_rol('${raulPersona}', 'administrador')`, 'solicitante: no puede cambiarse la función')
+  await debeFallar(`select * from public.listar_cuentas()`, 'solicitante: no ve las cuentas')
 })
 
 console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK')

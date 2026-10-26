@@ -625,12 +625,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _exigir_admin: { Args: never; Returns: undefined }
+      _vincular_por_correo: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
+      asignar_rol: {
+        Args: {
+          p_persona_id: string
+          p_rol: Database["public"]["Enums"]["rol_app"]
+        }
+        Returns: string
+      }
+      eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
       es_admin: { Args: never; Returns: boolean }
       es_tesoreria: { Args: never; Returns: boolean }
+      guardar_persona: { Args: { p: Json }; Returns: string }
       hook_validar_correo: { Args: { event: Json }; Returns: Json }
+      listar_cuentas: {
+        Args: never
+        Returns: {
+          email: string
+          persona_id: string
+          persona_nombre: string
+          ultimo_ingreso: string
+          user_id: string
+        }[]
+      }
       mi_persona_id: { Args: never; Returns: string }
       mi_rol: { Args: never; Returns: Database["public"]["Enums"]["rol_app"] }
       normalizar: { Args: { t: string }; Returns: string }
+      restaurar_persona: { Args: { p_persona_id: string }; Returns: undefined }
+      vincular_cuenta: {
+        Args: { p_persona_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       estado_rendicion:

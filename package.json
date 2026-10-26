@@ -17,7 +17,8 @@
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts",
     "db:datos": "node scripts/generar-datos-iniciales.mjs",
-    "db:probar": "node scripts/probar-migraciones.mjs"
+    "db:probar": "node scripts/probar-migraciones.mjs",
+    "db:historial": "node --env-file=.env.local scripts/importar-historial.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -56,5 +57,8 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }
