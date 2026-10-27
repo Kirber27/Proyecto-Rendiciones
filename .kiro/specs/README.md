@@ -5,14 +5,15 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | # | Spec | Depende de | Estado |
 | --- | --- | --- | --- |
 | 01 | [Fundaciones](01-fundaciones/) — scaffold, tema, Supabase, auth, esquema, RLS, seed, historial | — | ✅ Completo (2026-10-26) |
-| 02 | [Rendir gastos](02-rendir-gastos/) — fotos, lectura IA, editor, envío | 01 | ✅ Completo (2.1–2.8) |
+| 02 | [Rendir gastos](02-rendir-gastos/) — formulario, respaldos adjuntos (fotos y PDF), envío | 01 | 🟡 Rediseño sin IA implementado (2.14: probar en el navegador) |
 | 03 | [Por aprobar](03-por-aprobar/) — bandeja y decisiones de tesorería | 02 | 🟡 Implementado (falta prueba real) |
 | 04 | [Libro de rendiciones](04-libro-rendiciones/) — FIFO, libro, PDF, Excel | 03 | 🟡 Implementado (4.7: probar PDF con fotos en el navegador) |
 | 05 | [Carpetas](05-carpetas/) — mis rendiciones y carpetas por persona | 04 | 🟡 Implementado (5.5: confirmar RLS con cuenta real) |
 | 06 | [Personas y pagos](06-personas-pagos/) — cuenta corriente, pagos manuales | 04 | ✅ Implementado (falta probar en el navegador) |
 | 07 | [Banco y conciliación](07-banco-conciliacion/) — cartolas y propuestas | 06 | 🟡 Implementado (7.3: probar con cartolas reales) |
-| 08 | [Perfiles](08-perfiles/) — personas, funciones, cuentas | 01 | ✅ Completo (8.7 invitaciones: opcional) |
+| 08 | [Perfiles](08-perfiles/) — personas, funciones, cuentas | 01 | ✅ Completo (8.7 reemplazada por la 10) |
 | 09 | Despliegue (abajo) | todo | ⬜ |
+| 10 | [Ingreso con contraseña](10-ingreso-con-contrasena/) — correo + contraseña, cuentas y contraseñas temporales desde Perfiles, sin correos | 01, 08 | 🟡 Implementado (10.5: configurar el panel de Supabase y probar) |
 
 **Hito 1 (MVP solicitante + aprobación):** 01 → 08.3/8.5 (cargar correos) → 02 → 03.
 **Hito 2 (reemplaza al prototipo):** 04 → 05 → 06 → 07 → resto de 08.
@@ -21,12 +22,12 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 ## 09 · Despliegue — tareas
 
 - [ ] **9.1** Crear proyecto Supabase Cloud (región São Paulo `sa-east-1`), `supabase link`, `supabase db push`.
-- [ ] **9.2** Secretos de Edge Functions (`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`) y `supabase functions deploy`.
-- [ ] **9.3** Configurar Auth: URL del sitio, redirect URLs, plantilla de correo en español, SMTP propio (Heca M365) para no depender del SMTP de prueba.
+- [x] **9.2** ~~Secretos de Edge Functions y `supabase functions deploy`~~ — ya no aplica: sin Edge Functions desde 2.10 (2026-10-26).
+- [ ] **9.3** Configurar Auth: URL del sitio, registro abierto desactivado y largo mínimo de contraseña 8 (spec 10). Ya no hace falta SMTP ni plantillas de correo: la app no envía correos.
 - [ ] **9.4** Elegir hosting del frontend y configurar CI (build + lint + test en cada PR a `develop`/`main`).
 - [ ] **9.5** Importar historial en producción **una sola vez** y verificar totales.
 - [ ] **9.6** Exportar a Excel desde el prototipo (artifact) los datos creados después del 09-10-2026 y cargarlos (o decidir corte).
-- [ ] **9.7** Prueba con usuarios reales (1 tesorero + 2 solicitantes) desde celular, con `ejemplo_formulario_DHE-042.jpg`.
+- [ ] **9.7** Prueba con usuarios reales (1 tesorero + 2 solicitantes) desde celular, adjuntando `ejemplo_formulario_DHE-042.jpg` y un PDF de boleta.
 - [ ] **9.8** Backups: activar PITR o export programado; documentar restauración.
 
 ## Deuda / bloqueos

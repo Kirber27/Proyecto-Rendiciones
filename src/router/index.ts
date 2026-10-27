@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { roles: ['administrador'], pestana: { texto: 'Perfiles', orden: 7 } },
   },
   {
+    path: '/clave',
+    name: 'clave',
+    component: () => import('@/views/CambiarClaveView.vue'),
+    meta: { roles: '*' },
+  },
+  {
     path: '/ingresar',
     name: 'ingresar',
     component: () => import('@/views/LoginView.vue'),
@@ -97,5 +103,7 @@ router.beforeEach(async (to) => {
   if (to.meta.publica) return auth.conSesion && to.name === 'ingresar' ? INICIO : true
   if (!auth.conSesion)
     return { name: 'ingresar', query: to.fullPath !== INICIO ? { volver: to.fullPath } : {} }
+  // Con contraseña temporal, primero debe elegir una propia (spec 10).
+  if (auth.debeCambiarClave && to.name !== 'clave') return { name: 'clave' }
   return puedeEntrar(to.meta.roles, auth.rol) ? true : INICIO
 })

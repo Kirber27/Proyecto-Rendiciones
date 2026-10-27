@@ -1,87 +1,89 @@
 # 02 · Rendir gastos — Diseño
 
+> Rediseño 2026-10-26: formulario manual + respaldos adjuntos (imágenes y PDF). La lectura con IA (Edge Function `leer-rendicion`, recortes, prompt, `lecturas_ia`) se eliminó; su diseño queda en el historial de git (commit `3af03a4`).
+
 ## Componentes
 
 ```
 RendirView
-├── PasosRendir                (3 pasos)
-├── FotoDrop                   (input file multiple + capture, drag&drop, miniaturas, estado leyendo)
-├── LecturaEstado              (alerta de error con reintentar / empezar de nuevo)
-└── RendicionEditor  mode="persona" | "aprobar" | "libro"
+├── pasos                      (.steps: Completa · Adjunta · Envía)
+└── RendicionEditor  modo="persona" | "aprobar" | "libro"
     ├── DatosFormulario        (solicitante, Nº, fecha, empresa, fondo, total formulario)
-    ├── AvisoLectura           (N documentos, dudas)
     ├── LineasTable            (tabla ≥ md, tarjetas < md; MoneyInput para montos)
     ├── CuadreTotales
-    ├── RespaldosGrid          (miniaturas: fotos locales + respaldos guardados con URL firmada)
+    ├── slot #respaldos        (por defecto: RespaldosGrid de solo lectura, si hay respaldos)
+    │   └── RespaldosDrop      (lo pone RendirView: selector + cámara + arrastrar, con RespaldosGrid adentro)
     └── slot #acciones         (cada modo pone sus botones)
 ```
 
-`RendicionEditor` es el mismo para los tres modos (como `editor()` del prototipo). Recibe `v-model` del borrador y `mode`; muestra Cuenta/C.C. solo si `mode !== 'persona'`.
+- `RendicionEditor` es el mismo para los tres modos (como `editor()` del prototipo). Recibe `v-model` del borrador y `modo`; muestra Cuenta/C.C. solo si `modo !== 'persona'`. La prop `respaldos: Respaldo[]` reemplaza a `fotos`.
+- `RespaldosDrop` (antes `FotoDrop`, sin estado "leyendo"): `accept="image/*,application/pdf"`; botón "Adjuntar fotos o PDF" + "Cámara" (solo móvil, `capture="environment"`); avisos de archivos descartados (`revisarArchivos`).
+- `RespaldosGrid`: `Respaldo = { url, tipo: 'imagen' | 'pdf', nombre?, quitable? }`. Imagen → miniatura 96×120 con zoom en `AppLightbox`. PDF → ficha del mismo tamaño con ícono `bi-file-earmark-pdf` y nombre, que abre `url` en otra pestaña (`target="_blank" rel="noopener"`; sirve con `blob:` y con URL firmada).
 
 ## Estado: `useRendirStore`
 
 ```ts
-fotos: { id: string; file: File; url: string }[]
-borrador: BorradorRendicion | null // montos como texto mientras se edita; persona y catálogos por id
-leyendo: boolean; abort: AbortController | null
-errorLectura: { tipo: 'info'|'warn'|'bad'; texto: string } | null
-mensajeEnvio: ...
-acciones: agregarFotos, quitarFoto, leer, cancelarLectura, descartar, enviar, cargarParaCorregir(id)
+borrador: BorradorRendicion | null      // se crea al entrar (borradorNuevo) o se recupera del navegador
+archivos: { id; file; url; tipo }[]      // adjuntos locales aún no enviados
+guardados: { path; url; tipo }[]         // respaldos ya en Storage (corregir y reenviar)
+aviso, avisoEnvio: { tipo; texto } | null
+enviando, progresoEnvio
+acciones: iniciar, agregarArchivos, quitarArchivo, descartar, enviar, cargarParaCorregir(id)
 ```
 
-Persistencia del borrador: `watch(borrador)` → `localStorage('rendir:borrador')` con try/catch (sin fotos).
+- `iniciar()` (al montar la vista): carga catálogos; si no hay borrador, intenta recuperar el guardado y si no, crea uno con `borradorNuevo()`.
+- Persistencia: `watch(borrador)` → `localStorage('rendir:borrador:<user_id>')` solo si `tieneDatos(borrador)`; si no, se borra la clave. Al recuperar se avisa que hay que volver a adjuntar los archivos. Al cambiar de usuario se limpia la memoria sin tocar lo guardado del otro (igual que antes).
+- `descartar()` y el envío exitoso dejan un `borradorNuevo()` (no `null`).
 
-## Borrador con ids
+## Dominio
 
-A diferencia del prototipo (que guardaba nombres), el borrador referencia **ids**: `personaId` (uuid), `empresaId`, y en cada línea `subcuentaId`, `cuentaId`, `centroCostoId`. La lectura IA devuelve nombres y `aBorrador()` los resuelve contra los catálogos con `raw()`/`norm()`. `limpiarRendicion()` produce el payload en snake_case para las RPC.
+`src/domain/rendicion.ts`:
 
-## Dominio de lectura (compartido + frontend)
+- `borradorNuevo({ catalogos, personaFija, hoy })` → solicitante fijo o vacío, fecha de hoy, empresa *Hecaglobal Instruments SPA* (o la primera), una `lineaVacia` con fecha y C.C. de la empresa. Reemplaza a `completarAMano()` y a `aBorrador()`.
+- `tieneDatos(borrador)` → `true` si tiene Nº, fondo, total del formulario, respaldos guardados, más de una línea o alguna línea con proveedor, RUT, Nº doc., detalle, subcuenta o monto.
+- `validarRendicion(d, { esTesoreria, personasActivas, respaldos? })`: con `respaldos` (cantidad de guardados + nuevos) exige al menos uno: "Adjunta al menos un respaldo: la foto del formulario o de las boletas." Solo Rendir gastos lo pasa (el libro tiene rendiciones del historial sin respaldos).
 
-`supabase/functions/_shared/lectura.ts` (puro; lo importan la Edge Function y el frontend vía alias `@shared`): `construirPrompt(listas, nota)`, `RespuestaLecturaSchema`, `extraerRespuesta(salida)`, `ErrorLectura` y `CodigoErrorLectura`.
+`src/domain/formato.ts`: `montoATexto` (movido desde `domain/lectura.ts`; lo usa `aBorradorDesdeBase`).
 
-`src/domain/lectura.ts` (solo frontend):
+`src/domain/respaldos.ts` (reemplaza a `recortes.ts`):
 
-- `RespuestaLecturaSchema` (zod): todos los campos opcionales/tolerantes (`z.coerce`), `lineas` array.
-- `aBorrador(respuesta, ctx)` → `Borrador` (porta el mapeo de `leer()`: `raw()` contra listas, empresa por defecto HGI, C.C. de la empresa, cuenta sugerida, `num()`, `parseDate()`, limpieza de `numero`). Testeado con respuestas fijas.
+- `LADO_MAXIMO = 2400`, `escalaPara(ancho, alto, lado)` (lo usan la subida y el PDF).
+- `TAMANO_MAXIMO = 10 MB` (igual que el bucket).
+- `tipoRespaldo(mimeORuta)` → `'pdf'` si es `application/pdf` o termina en `.pdf`; si no `'imagen'`.
+- `tipoArchivo(file)` → `'imagen' | 'pdf' | null` (un PDF sin mime, como lo entregan algunos celulares, se reconoce por el nombre).
+- `revisarArchivos(archivos)` → `{ aceptados, aviso }`: descarta lo que no es imagen ni PDF y los PDF > 10 MB, con un aviso que junta los motivos.
 
-## Recortes (`domain/recortes.ts` + `lib/imagenes.ts`)
+`services/aprobacion.ts`: `abrirRendicion()` devuelve `respaldos: RespaldoGuardado[]` (`{ path, url, tipo }`, antes `fotos`); `respaldosGuardados(paths, urls)` lo comparten el store y Por aprobar/libro.
 
-Porta `prepImages(files, max)`. Lo puro (cuántos recortes, cajas, nota) en `domain/recortes.ts`; el canvas en `lib/imagenes.ts → prepararImagenes()`: `createImageBitmap(file, { imageOrientation: 'from-image' })`, canvas, JPEG 0.9, lado máx 2400. Además **reduce la foto completa** a lado máx 2400 / JPEG 0.85 para no exceder límites de tamaño. Devuelve `{ imagenes: Blob[], nota: string }`.
-
-## Edge Function `leer-rendicion`
-
-```
-POST /functions/v1/leer-rendicion
-Authorization: Bearer <jwt usuario>
-Body: { imagenes: [{ media_type, data(base64) }], nota: string }
-→ 200 { respuesta: RespuestaLectura, documentos: number }
-→ 4xx/5xx { code: 'rate_limited' | 'image_rejected' | 'invalid_json' | 'unauthorized' | 'error' }
-```
-
-1. Verifica JWT (`supabase.auth.getUser`), obtiene persona y rol.
-2. Revisa cupo diario en `lecturas_ia`.
-3. Construye el prompt **en el servidor** (las listas se leen de la base; así el cliente no puede alterarlo) con `construirPrompt` de `_shared/lectura.ts`.
-4. Llama a la API de Messages de Anthropic con las imágenes como bloques `image` base64 + texto. Pide respuesta solo JSON. Modelo desde `ANTHROPIC_MODEL`.
-5. `extraerRespuesta()` saca el JSON (tolera ```json y texto alrededor) y lo valida con zod; si falla → `invalid_json`.
-6. Inserta fila en `lecturas_ia` (tokens, ok/error).
-7. CORS para el origen del frontend.
-
-Constantes: `MAX_IMAGENES = 20` por lectura (el cliente usa este valor como `max` para los recortes).
+`src/lib/imagenes.ts` queda solo con `reducirImagen()`. `BorradorRendicion` pierde `dudas` y `documentosLeidos`.
 
 ## Envío
 
-`services/rendiciones.ts → enviar(borrador, fotos)`:
+`services/rendiciones.ts → enviarRendicion(borrador, archivos, opciones)`:
 
-1. Genera `rendicion_id = crypto.randomUUID()` (o el existente si es reenvío).
-2. Sube cada foto a `respaldos/<persona_id>/<rendicion_id>/<uuid>.jpg` (comprimida a 2400 px).
-3. `rpc('enviar_rendicion', { p: { id, persona_id, nro, fecha, empresa_id, fondo, total_formulario, lineas: [...], respaldos: [paths] } })`.
+1. `rendicion_id` = el existente (reenvío) o uno generado una vez por el store (reintentos en la misma carpeta).
+2. Cada adjunto que falte se sube a `respaldos/<persona_id>/<rendicion_id>/<id>.<ext>`:
+   - imagen → `reducirImagen` (2400 px, JPEG 0,85) → `.jpg`, `image/jpeg`;
+   - PDF → tal cual → `.pdf`, `application/pdf`.
+   Un reintento; "ya existe" cuenta como subido. Si alguno falla, avisa cuál y no envía.
+3. `rpc('enviar_rendicion', { p: { …payload, respaldos: [guardados…, nuevos…] } })`.
 
-RPC `enviar_rendicion` (migración `0009_rpc_enviar.sql`):
-- Verifica que `persona_id = mi_persona_id()` o `es_tesoreria()`.
-- Si `id` existe: debe ser de la persona y estar `en_revision` u `observada` (si no → error "Esta rendición ya fue revisada").
-- Upsert cabecera, borra y reinserta líneas, inserta respaldos nuevos, recalcula total.
-- Estado → `en_revision`, `editado_en = now()`; evento `Enviada` (nuevo) o `Reenviada`.
+## Servidor (migraciones nuevas)
 
-## Errores de usuario
+- `20261026000016_quitar_lectura_ia.sql`: `drop table public.lecturas_ia` (sus políticas caen con la tabla).
+- `20261026000017_respaldos_pdf_obligatorio.sql`:
+  - bucket `respaldos`: `allowed_mime_types` suma `application/pdf` (sigue en 10 MB).
+  - `enviar_rendicion` (`create or replace`, misma firma): cada ruta debe terminar en `.jpg` o `.pdf`; `mime` según la extensión; después de insertar, si la rendición no tiene ningún respaldo → `raise exception 'Adjunta al menos un respaldo: la foto del formulario o de las boletas.'` (la transacción se revierte).
+- Casos nuevos en `npm run db:probar`: PDF guardado con su mime, sin respaldos falla, reenvío sin nuevos pero con guardados pasa, extensión no permitida falla.
 
-Mapa `code → mensaje` en `domain/lectura.ts` (mismos textos del prototipo, cambiando "permiso de Claude" por mensajes de sesión).
+Limpieza remota (2.10): `supabase functions delete leer-rendicion`, `supabase secrets unset ANTHROPIC_API_KEY ANTHROPIC_MODEL ANTHROPIC_EFFORT LIMITE_LECTURAS_DIA` (los que existan), `db push`, `db:types`. La clave de Anthropic se revoca en su consola (lo hace el usuario).
+
+## Reporte PDF con respaldos PDF (`services/pdf.ts`)
+
+`generarReportePdf(modelo, respaldos: { url, tipo }[], { cargarImagen, cargarPdf, onProgreso })`:
+
+1. Si hay algún PDF, carga `pdf-lib` con `import()` junto con jsPDF.
+2. jsPDF arma el reporte como antes y, por cada respaldo en orden: imagen → su página; PDF → lo abre (`cargarPdf(url)` → bytes, por defecto `fetch`; `PDFDocument.load` sin `ignoreEncryption`) y deja **una página reservada por cada página del PDF**, con el encabezado "<folio> · Respaldo k de n · pág. j de m"; PDF que no abre (dañado o con contraseña) → página con aviso. La numeración "Página i de n" la sigue poniendo jsPDF sobre el total final.
+3. Si hubo páginas reservadas: `pdf-lib` abre la salida de jsPDF y dibuja cada página del respaldo (`embedPdf` + `drawPage`) escalada dentro de la misma caja que las fotos. Guarda sin object streams y devuelve los bytes.
+
+Así el orden de respaldos y la numeración no cambian y `pdf-lib` solo se descarga cuando hay PDF.

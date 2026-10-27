@@ -1,6 +1,6 @@
 # Modelo de datos (Supabase / Postgres)
 
-Reemplaza los documentos `envios/estados/rendiciones/pagos/cartolas/publico` del prototipo por tablas relacionales. Una rendición es **una sola fila** desde que se envía hasta que se paga; su estado y su folio cambian, y la línea de tiempo vive en `rendicion_eventos`.
+Reemplaza los documentos `envios/estados/rendiciones/pagos/cartolas/publico` del prototipo por tablas relacionales. (La tabla `lecturas_ia` de la lectura con IA se eliminó el 2026-10-26, migración `…0016`.) Una rendición es **una sola fila** desde que se envía hasta que se paga; su estado y su folio cambian, y la línea de tiempo vive en `rendicion_eventos`.
 
 ## Enums
 
@@ -42,6 +42,7 @@ personas
 unique index un_solo_tesorero on personas (rol) where rol = 'tesorero' and eliminada_en is null
 ```
 
+- Las cuentas (`auth.users`) las crea el administrador desde Perfiles con correo y contraseña (Edge Function `cuentas`, spec 10). Mientras tenga una contraseña temporal, `user_metadata.debe_cambiar_clave = true`.
 - Al crearse un usuario en `auth.users` (trigger), si su correo coincide con `personas.correo` se completa `personas.user_id`. Tesorería/admin pueden re-vincular a mano.
 - Helpers SQL (`stable security definer`): `mi_persona_id()`, `mi_rol()`, `es_tesoreria()` (tesorero o administrador), `es_admin()`.
 
@@ -87,8 +88,9 @@ rendicion_eventos              -- línea de tiempo / auditoría (solo insert)
 
 respaldos
   id uuid pk, rendicion_id → rendiciones on delete cascade,
-  storage_path text not null,   -- respaldos/<persona_id>/<rendicion_id>/<uuid>.jpg
-  mime text, orden smallint, creado_en
+  storage_path text not null,   -- respaldos/<persona_id>/<rendicion_id>/<uuid>.jpg | .pdf
+  mime text,                    -- image/jpeg | application/pdf (según la extensión)
+  orden smallint, creado_en
 ```
 
 ## Pagos y banco
@@ -117,14 +119,6 @@ cartola_movimientos
   -- "asignado" = existe un pago con movimiento_id = este id
 ```
 
-## Uso de IA
-
-```
-lecturas_ia
-  id bigint identity, user_id → auth.users, creado_en, imagenes int,
-  tokens_entrada int, tokens_salida int, ok bool, error text
-```
-
 ## Políticas RLS (resumen)
 
 | Tabla | SELECT | INSERT / UPDATE / DELETE |
@@ -134,14 +128,13 @@ lecturas_ia
 | `rendiciones`, `rendicion_lineas`, `respaldos`, `rendicion_eventos` | dueño (`persona_id = mi_persona_id()`) o `es_tesoreria()` | **solo vía RPC** |
 | `pagos`, `pago_rendiciones` | dueño o `es_tesoreria()` | `es_tesoreria()` vía RPC |
 | `cartolas`, `cartola_movimientos` | `es_tesoreria()` | `es_tesoreria()` |
-| `lecturas_ia` | propio o admin | solo la Edge Function (service role) |
-| Storage `respaldos` | dueño de la carpeta `<persona_id>/…` o tesorería | subir: dueño en su carpeta; borrar: tesorería |
+| Storage `respaldos` (imágenes y PDF, 10 MB) | dueño de la carpeta `<persona_id>/…` o tesorería | subir: dueño en su carpeta; borrar: tesorería |
 
 ## RPC (funciones `security definer`, validan rol y escriben evento)
 
 | Función | Quién | Efecto |
 | --- | --- | --- |
-| `enviar_rendicion(p jsonb)` | solicitante (o tesorería por otro) | Crea o reemplaza (si está `en_revision`/`observada` y es suya) cabecera + líneas + respaldos. Evento Enviada/Reenviada. Observada → en_revision. |
+| `enviar_rendicion(p jsonb)` | solicitante (o tesorería por otro) | Crea o reemplaza (si está `en_revision`/`observada` y es suya) cabecera + líneas + respaldos (`.jpg`/`.pdf`; exige al menos uno). Evento Enviada/Reenviada. Observada → en_revision. |
 | `aprobar_rendicion(id, p jsonb)` | tesorería | Guarda las correcciones, exige subcuenta/cuenta, asigna folio si no tiene, estado aprobada. |
 | `observar_rendicion(id, nota)` / `rechazar_rendicion(id, nota)` | tesorería | Nota obligatoria. |
 | `anular_aprobacion(id, nota)` | tesorería | aprobada → en_revision, `aprobacion_anulada = true`, conserva folio. |

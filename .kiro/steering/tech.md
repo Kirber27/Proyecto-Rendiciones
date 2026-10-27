@@ -6,15 +6,14 @@
 | --- | --- | --- |
 | Framework | **Vue 3** (Composition API, `<script setup lang="ts">`) | Sin Options API. |
 | Lenguaje | **TypeScript 6** (`strict: true`; sin `baseUrl`, deprecado en TS 6) | Tipos de la base generados con `supabase gen types`. |
-| Build | **Vite 8** | Alias `@` → `src/` y `@shared` → `supabase/functions/_shared/` (código puro compartido con las Edge Functions). Variables de entorno con prefijo `VITE_`. |
+| Build | **Vite 8** | Alias `@` → `src/`. Variables de entorno con prefijo `VITE_`. |
 | Estilos | **SCSS** + **Bootstrap 5.3** (compilado desde fuente SCSS, no por CDN) | Variables de Bootstrap sobreescritas con los tokens del diseño (ver `ui.md`). Modo oscuro con `data-bs-theme`. |
 | Íconos | `bootstrap-icons` | |
 | JS de Bootstrap | Import selectivo (`Modal`, `Toast`, `Dropdown`, `Collapse`) envuelto en componentes Vue | Nada de jQuery. |
 | Estado | **Pinia 4** (setup stores) | Un store por dominio. |
 | Rutas | **Vue Router 5** | Guards por función (`meta.roles`). |
-| Validación | **zod** | Para la respuesta de la IA, formularios y payloads de RPC. |
 | Excel | **SheetJS** (`xlsx`, instalado desde el tarball oficial `cdn.sheetjs.com`, no la versión vieja de npm) | Leer cartolas y exportar libro. Carga diferida (`import()`). |
-| PDF | **jsPDF** + `jspdf-autotable` | Reporte por rendición. Carga diferida. |
+| PDF | **jsPDF** + `jspdf-autotable`; **pdf-lib** | Reporte por rendición (jsPDF) e incrustación de los respaldos PDF en ese reporte (pdf-lib, solo si la rendición tiene PDF). Carga diferida. |
 | Fuentes | IBM Plex Sans + IBM Plex Mono (`@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono`) | Self-hosted, sin Google Fonts en runtime. |
 | Tests | **Vitest** + `@vue/test-utils` | La lógica de dominio (`src/domain/`) se testea siempre. |
 | Calidad | ESLint (flat config, `eslint-plugin-vue`, `typescript-eslint`) + Prettier | `npm run lint` y `npm run typecheck` deben pasar. |
@@ -26,23 +25,19 @@
 | **Postgres** | Todo el modelo de datos (ver `data-model.md`). Migraciones SQL versionadas en `supabase/migrations/`. |
 | **RLS** | Activado en **todas** las tablas. El acceso real a datos lo dan las políticas, no la UI. |
 | **RPC (funciones SQL)** | Toda transición de estado (enviar, aprobar, observar, rechazar, anular, eliminar, registrar pago, conciliar) pasa por una función `security definer` que valida la función del usuario y escribe la línea de tiempo en la misma transacción. |
-| **Auth** | Login por correo con código/enlace (OTP). Solo pueden entrar correos registrados en `personas` (registro abierto desactivado; alta vía invitación o hook). Microsoft (Azure AD) como proveedor opcional futuro, porque Heca usa M365. |
-| **Storage** | Bucket privado `respaldos` para fotos. Se muestran con URLs firmadas de corta duración. |
-| **Edge Functions** (Deno) | `leer-rendicion`: recibe las imágenes, llama a la API de Claude con visión y devuelve el JSON validado. La API key de Anthropic **solo** vive como secreto de la función. |
+| **Auth** | Login con **correo y contraseña**. No se envían correos (no hay SMTP): las cuentas las crea el administrador en Perfiles con una contraseña temporal que la persona cambia al entrar; recuperar contraseña = el administrador asigna otra temporal. Registro abierto desactivado; el hook `hook_validar_correo` sigue como segunda barrera. Ver spec 10. Microsoft (Azure AD) como proveedor opcional futuro, porque Heca usa M365. |
+| **Storage** | Bucket privado `respaldos` para los respaldos (fotos y PDF, máx. 10 MB). Se muestran con URLs firmadas de corta duración. |
+| **Edge Functions** (Deno) | `cuentas` (solo administrador): crea cuentas y asigna contraseñas temporales con la clave de servicio. Sin secretos propios (usa los que Supabase inyecta). Despliegue: `npx supabase functions deploy cuentas --use-api`. (La de lectura con IA, `leer-rendicion`, se eliminó el 2026-10-26.) |
 | **Realtime** | Contador de "Por aprobar" y refresco de carpetas. |
 
-## Lectura con IA
+## Sin IA
 
-- Proveedor: API de Anthropic con el SDK oficial `@anthropic-ai/sdk` (fijado en `deno.json`). Modelo por defecto `claude-opus-5-5` (secreto `ANTHROPIC_MODEL`), esfuerzo `medium` (`ANTHROPIC_EFFORT`). Salida con **structured outputs** (`output_config.format` = `ESQUEMA_SALIDA` de `_shared/lectura.ts`) y **fallbacks `"default"`** ante rechazos por política. Antes de cambiar la llamada, consultar la skill `claude-api` (la API cambia seguido).
-- El prompt y las reglas de lectura se portan de `buildPrompt()` del prototipo (ver `business-rules.md` §Lectura).
-- Los recortes ampliados (cuadrantes / mitades) se generan en el **cliente** con `<canvas>` antes de enviar (porta `prepImages()`).
-- Límite de uso por usuario (tabla `lecturas_ia`) para controlar costo.
+La primera versión leía las fotos con la API de Anthropic (Edge Function `leer-rendicion`). Se eliminó el 2026-10-26 porque la API cobra por cada imagen leída: los datos se ingresan a mano y las fotos/PDF quedan solo como respaldo. No hay dependencias, secretos ni tablas de IA. Si se retoma, partir del commit `3af03a4` y del spec 02 (versión anterior en git).
 
 ## Entornos y secretos
 
 - `.env.local` (no se commitea): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- Secretos de Edge Functions (`supabase secrets set`): `ANTHROPIC_API_KEY` (obligatorio), `ANTHROPIC_MODEL`, `ANTHROPIC_EFFORT`, `LIMITE_LECTURAS_DIA` (opcionales). Despliegue: `npx supabase functions deploy leer-rendicion --use-api`.
-- La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y funciones.
+- La `service_role` key **nunca** va al frontend; solo se usa en scripts locales (`scripts/`) y en la Edge Function `cuentas`.
 - **Sin Docker local**: se trabaja contra un proyecto en **Supabase Cloud** (creado desde la web). Migraciones con `supabase link` + `supabase db push`. Si más adelante se separan entornos, un proyecto de desarrollo y otro de producción. Frontend estático (Vercel/Netlify/Cloudflare Pages, por decidir).
 
 ## Requisitos
@@ -63,10 +58,11 @@ npm run db:push      # supabase db push (aplica migraciones pendientes al proyec
 npm run db:probar    # aplica las migraciones sobre PGlite y prueba RLS/triggers (sin Docker)
 npm run db:datos     # regenera la migración de datos iniciales desde CLAUDE/datos
 npm run db:historial # importa el historial 2026 (requiere SUPABASE_SECRET_KEY en la terminal; --ensayo no escribe)
+npm run cuenta:clave -- <correo>  # contraseña temporal para una cuenta (requiere SUPABASE_SECRET_KEY en la terminal)
 ```
 
 ## Restricciones
 
 - No usar `alert/confirm/prompt` nativos: confirmaciones en línea o modal de Bootstrap.
-- Las librerías pesadas (xlsx, jspdf) se cargan con `import()` solo cuando se usan.
+- Las librerías pesadas (xlsx, jspdf, pdf-lib) se cargan con `import()` solo cuando se usan.
 - Mobile first: el solicitante usa la app desde el celular. Tablas anchas con scroll horizontal propio.

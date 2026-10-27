@@ -24,4 +24,4 @@ Referencia: `vConfig`, `savePersona`, `setFuncionPersona`, `sugerirCodigo`.
 ## R4. Cuentas
 
 - **R4.1** EL SISTEMA DEBERÁ mostrar (plegable) las cuentas de usuario existentes con su persona vinculada, permitiendo re-vincular manualmente, y las cuentas sin persona.
-- **R4.2** (Opcional) EL SISTEMA DEBERÁ permitir **Enviar invitación** al correo de una persona.
+- **R4.2** ~~(Opcional) Enviar invitación al correo de una persona~~ — reemplazado por la spec 10: el administrador crea la cuenta con una contraseña temporal (sin correos).

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Perfiles (spec 08): personas del historial y nuevas, su función, código y correo.
-// Las reglas se revisan en pantalla (domain/personas.ts) y en la base (RPC); manda la base.
+// Perfiles (spec 08): personas del historial y nuevas, su función, código y correo; y sus cuentas
+// con contraseña temporal (spec 10). Las reglas se revisan en pantalla (domain/personas.ts) y en la
+// base (RPC / Edge Function); manda la base.
 import { computed, onMounted, ref } from 'vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
 import CuentasUsuario from '@/components/perfiles/CuentasUsuario.vue'
@@ -13,6 +14,7 @@ import {
   validarCorreo,
   type PersonaGestion,
 } from '@/domain/personas'
+import { crearCuenta, nuevaClave } from '@/services/cuentas'
 import {
   asignarRol,
   eliminarPersona,
@@ -34,6 +36,10 @@ const guardando = ref(false)
 const mensaje = ref<{ tipo: 'success' | 'danger'; texto: string } | null>(null)
 const buscar = ref('')
 const confirmarEliminar = ref<string | null>(null)
+const confirmarClave = ref<string | null>(null)
+/** Contraseña temporal recién generada: se muestra una vez, hasta la siguiente acción. */
+const claveTemporal = ref<{ nombre: string; correo: string; clave: string } | null>(null)
+const copiada = ref(false)
 const form = ref<InstanceType<typeof FormPersonaNueva>>()
 const cuentas = ref<InstanceType<typeof CuentasUsuario>>()
 
@@ -84,6 +90,7 @@ async function refrescar(afectadas: (string | null)[] = []) {
 
 async function ejecutar(accion: () => Promise<string>, afectadas: (string | null)[] = []) {
   guardando.value = true
+  claveTemporal.value = null
   try {
     const texto = await accion()
     await refrescar(afectadas)
@@ -103,9 +110,10 @@ function cambiarCorreo(p: PersonaPerfil, valor: string) {
   if (problema) return avisar('danger', problema)
   void ejecutar(async () => {
     await guardarPersona({ id: p.id, nombre: p.nombre, codigo: p.codigo, correo })
-    return correo
-      ? `Correo de ${tr(p.nombre)} guardado. Ya puede ingresar.`
-      : `Correo de ${tr(p.nombre)} borrado.`
+    if (!correo) return `Correo de ${tr(p.nombre)} borrado.`
+    return p.vinculada
+      ? `Correo de ${tr(p.nombre)} guardado.`
+      : `Correo de ${tr(p.nombre)} guardado. Ahora crea su cuenta para que pueda ingresar.`
   })
 }
 
@@ -144,6 +152,29 @@ function restaurar(p: PersonaPerfil) {
   })
 }
 
+// ---------- Cuentas con contraseña temporal (spec 10) ----------
+function gestionarCuenta(p: PersonaPerfil, accion: 'crear' | 'restablecer') {
+  confirmarClave.value = null
+  void ejecutar(async () => {
+    const clave = await (accion === 'crear' ? crearCuenta(p.id) : nuevaClave(p.id))
+    claveTemporal.value = { nombre: tr(p.nombre), correo: p.correo ?? '', clave }
+    copiada.value = false
+    return accion === 'crear'
+      ? `Cuenta de ${tr(p.nombre)} creada.`
+      : `${tr(p.nombre)} tiene una contraseña nueva; la anterior ya no sirve.`
+  })
+}
+
+async function copiarClave() {
+  if (!claveTemporal.value) return
+  try {
+    await navigator.clipboard.writeText(claveTemporal.value.clave)
+    copiada.value = true
+  } catch {
+    avisar('danger', 'No se pudo copiar: selecciónala y cópiala a mano.')
+  }
+}
+
 function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }) {
   void ejecutar(async () => {
     const id = await guardarPersona({ nombre: n.nombre, codigo: n.codigo, correo: n.correo })
@@ -158,7 +189,7 @@ function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }
   <div class="d-flex flex-column gap-3">
     <PageTitle
       titulo="Perfiles"
-      lead="Todas las personas que rinden, las del historial y las nuevas. Asigna a cada una su función y su correo: con el correo registrado puede ingresar a la app."
+      lead="Todas las personas que rinden, las del historial y las nuevas. Asigna a cada una su función y su correo, y crea su cuenta para que pueda ingresar a la app."
     />
 
     <div class="row row-cols-1 row-cols-md-3 g-3">
@@ -184,6 +215,31 @@ function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }
       aria-live="polite"
     >
       {{ mensaje.texto }}
+    </div>
+    <div
+      v-if="claveTemporal"
+      class="alert alert-warning mb-0 d-flex flex-wrap align-items-center gap-2"
+      role="status"
+      aria-label="Contraseña temporal"
+    >
+      <span>
+        Contraseña temporal de <b>{{ claveTemporal.nombre }}</b> ({{ claveTemporal.correo }}):
+      </span>
+      <code class="mono fs-6 text-body user-select-all">{{ claveTemporal.clave }}</code>
+      <button type="button" class="btn btn-sm btn-outline-secondary" @click="copiarClave">
+        <i :class="['bi', copiada ? 'bi-check-lg' : 'bi-clipboard']" aria-hidden="true" />
+        {{ copiada ? 'Copiada' : 'Copiar' }}
+      </button>
+      <button
+        type="button"
+        class="btn-close ms-auto"
+        aria-label="Cerrar contraseña temporal"
+        @click="claveTemporal = null"
+      />
+      <span class="small w-100">
+        Entrégasela a la persona: no se vuelve a mostrar y no llega por correo. Al entrar con ella
+        deberá elegir una propia.
+      </span>
     </div>
 
     <section class="card">
@@ -250,9 +306,47 @@ function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }
                 </td>
                 <td class="n">{{ p.rendiciones || '' }}</td>
                 <td class="small text-body-secondary">{{ p.esNueva ? 'Nueva' : 'Historial' }}</td>
-                <td>
-                  <AppChip v-if="p.vinculada" tono="ok">Vinculada</AppChip>
-                  <AppChip v-else-if="p.correo" tono="muted">Sin ingresar</AppChip>
+                <td class="text-nowrap">
+                  <template v-if="p.vinculada">
+                    <AppChip tono="ok">Con cuenta</AppChip>
+                    <span v-if="confirmarClave === p.id" class="ms-2">
+                      <span class="small text-body-secondary me-1">La actual deja de servir.</span>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary me-1"
+                        @click="gestionarCuenta(p, 'restablecer')"
+                      >
+                        Sí, nueva
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="confirmarClave = null"
+                      >
+                        No
+                      </button>
+                    </span>
+                    <button
+                      v-else
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary ms-2"
+                      :disabled="guardando"
+                      :aria-label="`Nueva contraseña para ${tr(p.nombre)}`"
+                      @click="confirmarClave = p.id"
+                    >
+                      Nueva contraseña
+                    </button>
+                  </template>
+                  <button
+                    v-else-if="p.correo"
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    :disabled="guardando"
+                    :aria-label="`Crear cuenta para ${tr(p.nombre)}`"
+                    @click="gestionarCuenta(p, 'crear')"
+                  >
+                    Crear cuenta
+                  </button>
                   <AppChip v-else tono="warn">Sin correo</AppChip>
                 </td>
                 <td class="text-nowrap">
@@ -329,8 +423,9 @@ function agregar(n: { nombre: string; correo: string; codigo: string; rol: Rol }
     <FormPersonaNueva ref="form" :personas="gestion" :guardando="guardando" @agregar="agregar" />
 
     <p class="small text-body-secondary mb-0">
-      Al registrar el correo de una persona, puede entrar con un código que le llega a ese correo.
-      Su función decide qué pestañas ve; los permisos reales los aplica la base de datos.
+      Con el correo registrado, «Crear cuenta» genera una contraseña temporal que le entregas tú (la
+      app no envía correos); si la olvida, usa «Nueva contraseña». Su función decide qué pestañas
+      ve; los permisos reales los aplica la base de datos.
     </p>
   </div>
 </template>

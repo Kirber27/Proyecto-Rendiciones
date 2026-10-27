@@ -12,14 +12,14 @@ Esta versión reemplaza al prototipo que vivía como artifact de Claude (`CLAUDE
 | --- | --- | --- |
 | Solicitante | Cualquier trabajador (por defecto) | Rendir gastos y ver su carpeta (Mis rendiciones). |
 | Tesorero | Una sola persona | Aprobar / observar / rechazar, libro de rendiciones, personas y pagos, banco y conciliación, carpetas de todos. |
-| Administrador | Dueño(s) del sistema | Todo lo del tesorero + Perfiles (CRUD de personas, funciones, vínculo cuenta→persona). |
+| Administrador | Dueño(s) del sistema | Todo lo del tesorero + Perfiles (CRUD de personas, funciones, cuentas y contraseñas, vínculo cuenta→persona). |
 
 "Tesorería" = Tesorero o Administrador.
 
 ## Flujo principal
 
-1. La persona sube la foto del formulario firmado y de sus boletas/facturas (desde el celular, normalmente).
-2. La app lee las fotos con IA (Claude vía Edge Function) y arma las líneas de gasto. La persona solo corrige si algo se leyó mal y envía. **No hay ingreso manual desde cero como camino principal.**
+1. La persona completa en la app el formulario de rendición (datos y una línea por boleta/factura), desde el celular normalmente.
+2. Adjunta como respaldo la foto del formulario firmado y de sus boletas/facturas (imágenes o PDF; al menos uno) y envía.
 3. **Solo tesorería** aprueba e ingresa al libro (o devuelve con motivo = Observada, o rechaza).
 4. Tesorería sube la cartola del banco; la app propone qué cargo paga qué rendición.
 5. Cada persona tiene una carpeta con todos sus movimientos (enviada, aprobada, observada, eliminada, pagada…).
@@ -28,13 +28,13 @@ Esta versión reemplaza al prototipo que vivía como artifact de Claude (`CLAUDE
 
 | Pantalla | Quién | Resumen |
 | --- | --- | --- |
-| Rendir gastos | todos | Subir fotos → lectura automática → revisión/corrección → envío. |
+| Rendir gastos | todos | Formulario (datos + gastos) → adjuntar respaldos (fotos o PDF) → envío. |
 | Mis rendiciones / Carpetas | todos | Solicitante: su carpeta. Tesorería: una carpeta por persona, con buscador y filtros. Línea de tiempo por rendición. |
 | Por aprobar | tesorería | Envíos sin decisión, reenviados tras observación o con aprobación anulada. |
 | Rendiciones (libro) | tesorería | Libro oficial con filtros, edición, PDF, anular aprobación, eliminar, exportar a Excel. |
 | Personas | tesorería | Cuenta corriente por persona (rendido, pagado, saldo, faltantes del correlativo). Pagos/anticipos manuales. |
 | Banco | tesorería | Carga de cartola, mapeo de columnas, propuestas de conciliación, asignación manual. |
-| Perfiles | administrador | CRUD de personas, funciones, código, correo, vínculo de cuentas. |
+| Perfiles | administrador | CRUD de personas, funciones, código, correo, cuentas (crear, nueva contraseña) y vínculo de cuentas. |
 
 ## Idioma y formato
 
@@ -44,8 +44,8 @@ Esta versión reemplaza al prototipo que vivía como artifact de Claude (`CLAUDE
 
 ## Lo que NO es (por ahora)
 
-- No envía correos ni notificaciones push (la persona ve su estado en su carpeta). Queda como mejora futura.
-- No lee PDFs de boletas: hay que subir foto o pantallazo.
+- No envía correos de ningún tipo (tampoco para ingresar: no hay SMTP) ni notificaciones push. La persona ve su estado en su carpeta; las cuentas y contraseñas las entrega el administrador.
+- No lee las fotos automáticamente: la lectura con IA se eliminó el 2026-10-26 por el costo por imagen de la API. Los datos se ingresan a mano y las fotos/PDF quedan como respaldo.
 - No es contabilidad completa: exporta al Excel que tesorería ya usa (hoja "Rendiciones").
 
 ## Datos sensibles

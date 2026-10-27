@@ -1,25 +1,21 @@
-// Flujo de "Rendir gastos" (spec 02, 2.6): fotos → lectura automática con IA → borrador editable.
-// El envío (subir fotos a Storage + RPC) se agrega en 2.7.
+// Flujo de "Rendir gastos" (spec 02): la persona completa el formulario, adjunta los respaldos y envía.
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { ErrorLectura } from '@shared/lectura'
-import { hoy } from '@/domain/formato'
-import { aBorrador, mensajeErrorLectura } from '@/domain/lectura'
-import { centroCostoDeEmpresa } from '@/domain/catalogos'
-import { lineaVacia } from '@/domain/rendicion'
-import { prepararImagenes } from '@/lib/imagenes'
-import { leerFotos, MAX_IMAGENES_LECTURA } from '@/services/lectura'
+import { clp, hoy } from '@/domain/formato'
+import { borradorNuevo, tieneDatos } from '@/domain/rendicion'
+import { tipoRespaldo } from '@/domain/respaldos'
 import { enviarRendicion } from '@/services/rendiciones'
-import { abrirRendicion, urlsFirmadas } from '@/services/aprobacion'
-import { clp } from '@/domain/formato'
-import type { BorradorRendicion } from '@/types/rendicion'
+import { abrirRendicion, respaldosGuardados, urlsFirmadas } from '@/services/aprobacion'
+import type { BorradorRendicion, RespaldoGuardado, TipoRespaldo } from '@/types/rendicion'
 import { useAuthStore } from './auth'
 import { useCatalogosStore } from './catalogos'
 
-export interface FotoLocal {
+/** Archivo adjunto que todavía no se sube. */
+export interface ArchivoLocal {
   id: string
   file: File
   url: string
+  tipo: TipoRespaldo
 }
 
 export interface Aviso {
@@ -33,36 +29,39 @@ export const useRendirStore = defineStore('rendir', () => {
   const auth = useAuthStore()
   const catalogos = useCatalogosStore()
 
-  const fotos = ref<FotoLocal[]>([])
-  /** Fotos ya guardadas en Storage (al corregir una rendición observada). */
-  const fotosGuardadas = ref<{ path: string; url: string }[]>([])
+  const archivos = ref<ArchivoLocal[]>([])
+  /** Respaldos ya guardados en Storage (al corregir una rendición observada). */
+  const guardados = ref<RespaldoGuardado[]>([])
   const borrador = ref<BorradorRendicion | null>(null)
-  const leyendo = ref(false)
-  const avisoLectura = ref<Aviso | null>(null)
+  /** Aviso sobre el formulario: borrador recuperado o motivo de tesorería. */
+  const aviso = ref<Aviso | null>(null)
   const avisoEnvio = ref<Aviso | null>(null)
-  /** Cantidad de fotos que tenía la última lectura (para ofrecer "Volver a leer"). */
-  const fotosLeidas = ref(0)
   const enviando = ref(false)
   const progresoEnvio = ref('')
-  let control: AbortController | null = null
   /** Id de una rendición nueva: se genera una vez para que los reintentos usen la misma carpeta. */
   let idEnvio: string | null = null
-  /** Fotos ya subidas a Storage en intentos anteriores (id local → ruta). */
+  /** Archivos ya subidos a Storage en intentos anteriores (id local → ruta). */
   const subidas = new Map<string, string>()
 
-  /** El solicitante queda fijo en su persona si no es tesorería (R2.6). */
+  /** El solicitante queda fijo en su persona si no es tesorería (R1.3). */
   const personaFija = computed(() => (auth.esTesoreria ? null : (auth.persona?.id ?? null)))
-  const hayFotosNuevas = computed(
-    () => fotos.value.length > 0 && fotos.value.length !== fotosLeidas.value,
-  )
 
-  // ---------- Borrador guardado en el navegador (R4.5) ----------
+  function nuevo(): BorradorRendicion {
+    return borradorNuevo({
+      catalogos: catalogos.catalogos,
+      personaFija: personaFija.value,
+      hoy: hoy(),
+    })
+  }
+
+  // ---------- Borrador guardado en el navegador (R3.5) ----------
   let silencio = false // al limpiar por cambio de usuario no se toca lo guardado
   function guardarLocal() {
     const uid = auth.session?.user.id
     if (!uid || silencio) return
     try {
-      if (borrador.value) localStorage.setItem(CLAVE(uid), JSON.stringify(borrador.value))
+      if (borrador.value && tieneDatos(borrador.value))
+        localStorage.setItem(CLAVE(uid), JSON.stringify(borrador.value))
       else localStorage.removeItem(CLAVE(uid))
     } catch {
       // Sin almacenamiento (modo privado): el borrador vive solo en esta pestaña.
@@ -71,45 +70,53 @@ export const useRendirStore = defineStore('rendir', () => {
   // 'sync': se guarda en el momento (y el silencio de abajo funciona sin carreras).
   watch(borrador, guardarLocal, { deep: true, flush: 'sync' })
 
-  /** Recupera el borrador que quedó al cerrar la pestaña (sin fotos: no se guardan en el navegador). */
-  function recuperar() {
+  /** Recupera el borrador que quedó al cerrar la pestaña (sin adjuntos: no se guardan en el navegador). */
+  function recuperar(): boolean {
     const uid = auth.session?.user.id
-    if (!uid || borrador.value) return
+    if (!uid) return false
     try {
       const guardado = localStorage.getItem(CLAVE(uid))
-      if (!guardado) return
+      if (!guardado) return false
       borrador.value = JSON.parse(guardado) as BorradorRendicion
-      void mostrarGuardadas(borrador.value.respaldos)
-      avisoLectura.value = {
+      void mostrarGuardados(borrador.value.respaldos)
+      aviso.value = {
         tipo: 'info',
         texto:
-          'Recuperamos la rendición que estabas completando. Si tenías fotos, vuelve a agregarlas para adjuntarlas.',
+          'Recuperamos la rendición que estabas completando. Si habías adjuntado archivos, vuelve a adjuntarlos.',
       }
+      return true
     } catch {
-      /* borrador ilegible: se ignora */
+      return false // borrador ilegible: se ignora
     }
   }
 
-  async function mostrarGuardadas(paths: string[]) {
+  async function mostrarGuardados(paths: string[]) {
     if (!paths.length) return
     try {
-      const urls = await urlsFirmadas(paths)
-      fotosGuardadas.value = paths
-        .filter((p) => urls.has(p))
-        .map((p) => ({ path: p, url: urls.get(p)! }))
+      guardados.value = respaldosGuardados(paths, await urlsFirmadas(paths))
     } catch {
       /* sin conexión: se ven al volver a abrir */
     }
   }
 
-  // ---------- Corregir y reenviar (2.8) ----------
+  /** Al entrar a la pantalla: el borrador en curso, el guardado en el navegador o uno nuevo (R1.1). */
+  async function iniciar() {
+    if (borrador.value) return
+    await catalogos.cargar()
+    // Sin catálogos no hay formulario (la pantalla muestra el error); o se abrió una para corregir.
+    if (!catalogos.listo || borrador.value) return
+    if (!recuperar()) borrador.value = nuevo()
+  }
+
+  // ---------- Corregir y reenviar (R4.1) ----------
   /** Abre una rendición observada (o en revisión) para corregirla y reenviarla. */
   async function cargarParaCorregir(id: string) {
-    descartar()
+    limpiar()
+    avisoEnvio.value = null
     const r = await abrirRendicion(id)
     borrador.value = r.borrador
-    fotosGuardadas.value = r.fotos
-    avisoLectura.value = r.notaTesoreria
+    guardados.value = r.respaldos
+    aviso.value = r.notaTesoreria
       ? {
           tipo: 'warning',
           texto: `Tesorería pidió: «${r.notaTesoreria}». Corrige y vuelve a enviar.`,
@@ -117,122 +124,57 @@ export const useRendirStore = defineStore('rendir', () => {
       : { tipo: 'info', texto: 'Corrige lo necesario y vuelve a enviar.' }
   }
 
-  // ---------- Fotos ----------
-  function agregarFotos(archivos: File[]) {
-    for (const file of archivos) {
-      fotos.value.push({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) })
+  // ---------- Adjuntos ----------
+  function agregarArchivos(lista: File[]) {
+    for (const file of lista) {
+      archivos.value.push({
+        id: crypto.randomUUID(),
+        file,
+        url: URL.createObjectURL(file),
+        tipo: tipoRespaldo(file.type || file.name),
+      })
     }
     avisoEnvio.value = null
-    // Lectura automática al subir (R2.1), solo si todavía no hay borrador.
-    if (!borrador.value && fotos.value.length) void leer()
   }
 
-  function quitarFoto(indice: number) {
-    const [f] = fotos.value.splice(indice, 1)
-    if (f) URL.revokeObjectURL(f.url)
-    if (!fotos.value.length && !borrador.value) avisoLectura.value = null
+  function quitarArchivo(indice: number) {
+    const [a] = archivos.value.splice(indice, 1)
+    if (a) URL.revokeObjectURL(a.url)
   }
 
-  // ---------- Lectura ----------
-  async function leer() {
-    if (!fotos.value.length || leyendo.value) return
-    leyendo.value = true // de inmediato: la persona ve "Leyendo…" aunque falten los catálogos
-    avisoLectura.value = null
-    control = new AbortController()
-    const anterior = borrador.value
-    try {
-      await catalogos.cargar()
-      const { imagenes, nota } = await prepararImagenes(
-        fotos.value.map((f) => f.file),
-        MAX_IMAGENES_LECTURA,
-      )
-      const respuesta = await leerFotos(imagenes, nota, control.signal)
-      const nuevo = aBorrador(respuesta, {
-        catalogos: catalogos.catalogos,
-        personaFija: personaFija.value,
-        hoy: hoy(),
-        id: anterior?.id,
-        respaldos: anterior?.respaldos,
-      })
-      if (fotos.value.length > MAX_IMAGENES_LECTURA)
-        nuevo.dudas.push(
-          `Se leyeron las primeras ${MAX_IMAGENES_LECTURA} fotos; las demás se guardan como respaldo.`,
-        )
-      borrador.value = nuevo
-      fotosLeidas.value = fotos.value.length
-    } catch (e) {
-      const m = mensajeErrorLectura(e instanceof ErrorLectura ? e.codigo : 'error')
-      avisoLectura.value = { tipo: m.tipo, texto: m.texto }
-    } finally {
-      leyendo.value = false
-      control = null
-    }
-  }
-
-  function cancelarLectura() {
-    control?.abort()
-  }
-
-  /** Si la lectura no funciona, permite completar a mano (no es el camino principal). */
-  function completarAMano() {
-    const empresa = catalogos.catalogos.empresas.find(
-      (e) => e.nombre === 'Hecaglobal Instruments SPA',
-    )
-    const fecha = hoy()
-    borrador.value = {
-      personaId: personaFija.value,
-      nro: '',
-      fecha,
-      empresaId: empresa?.id ?? null,
-      fondo: '',
-      totalFormulario: '',
-      lineas: [
-        lineaVacia({
-          fecha,
-          centroCostoId: centroCostoDeEmpresa(empresa?.id ?? null, catalogos.catalogos.empresas),
-        }),
-      ],
-      dudas: [],
-      respaldos: [],
-    }
-    avisoLectura.value = null
+  /** Olvida adjuntos y avisos de la rendición en curso (no toca el borrador). */
+  function limpiar() {
+    archivos.value.forEach((a) => URL.revokeObjectURL(a.url))
+    archivos.value = []
+    guardados.value = []
+    aviso.value = null
+    idEnvio = null
+    subidas.clear()
   }
 
   /** Al salir o cambiar de usuario: olvidar lo que hay en memoria (lo guardado en el navegador queda). */
   watch(
     () => auth.session?.user.id,
-    (nuevo, anterior) => {
-      if (anterior && nuevo !== anterior) {
-        cancelarLectura()
-        fotos.value.forEach((f) => URL.revokeObjectURL(f.url))
-        fotos.value = []
-        fotosGuardadas.value = []
+    (actual, anterior) => {
+      if (anterior && actual !== anterior) {
+        limpiar()
         silencio = true
         borrador.value = null
         silencio = false
-        fotosLeidas.value = 0
-        avisoLectura.value = null
         avisoEnvio.value = null
       }
     },
   )
 
-  /** Borra todo: fotos, borrador y lo guardado en el navegador. */
+  /** Borra todo (también lo guardado en el navegador) y deja el formulario vacío (R3.6). */
   function descartar() {
-    cancelarLectura()
-    fotos.value.forEach((f) => URL.revokeObjectURL(f.url))
-    fotos.value = []
-    fotosGuardadas.value = []
-    borrador.value = null
-    fotosLeidas.value = 0
-    avisoLectura.value = null
+    limpiar()
     avisoEnvio.value = null
-    idEnvio = null
-    subidas.clear()
+    borrador.value = nuevo()
   }
 
-  // ---------- Envío (2.7) ----------
-  /** Sube las fotos y envía. La validación la hace la pantalla antes de llamar. Devuelve true si se envió. */
+  // ---------- Envío (R3) ----------
+  /** Sube los adjuntos y envía. La validación la hace la pantalla antes de llamar. Devuelve true si se envió. */
   async function enviar(): Promise<boolean> {
     if (!borrador.value || enviando.value) return false
     enviando.value = true
@@ -241,7 +183,7 @@ export const useRendirStore = defineStore('rendir', () => {
     try {
       const r = await enviarRendicion(
         borrador.value,
-        fotos.value.map((f) => ({ id: f.id, file: f.file })),
+        archivos.value.map((a) => ({ id: a.id, file: a.file })),
         { rendicionId: idEnvio, subidas, onProgreso: (t) => (progresoEnvio.value = t) },
       )
       descartar()
@@ -260,24 +202,19 @@ export const useRendirStore = defineStore('rendir', () => {
   }
 
   return {
-    fotos,
-    fotosGuardadas,
-    cargarParaCorregir,
+    archivos,
+    guardados,
     borrador,
-    leyendo,
+    aviso,
+    avisoEnvio,
     enviando,
     progresoEnvio,
-    enviar,
-    avisoLectura,
-    avisoEnvio,
     personaFija,
-    hayFotosNuevas,
-    recuperar,
-    agregarFotos,
-    quitarFoto,
-    leer,
-    cancelarLectura,
-    completarAMano,
+    iniciar,
+    cargarParaCorregir,
+    agregarArchivos,
+    quitarArchivo,
     descartar,
+    enviar,
   }
 })

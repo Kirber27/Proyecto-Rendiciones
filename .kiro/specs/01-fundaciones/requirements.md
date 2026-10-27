@@ -17,6 +17,8 @@ Base técnica sobre la que se construyen todas las pantallas: proyecto Vue, tema
 
 ## R3. Autenticación
 
+> **Reemplazado por la spec 10 (2026-10-27):** ingreso con correo y contraseña, cuentas creadas por el administrador, sin correos. Siguen vigentes R3.3 (hook), R3.4 (vínculo por correo) y R3.5.
+
 - **R3.1** CUANDO un usuario sin sesión abra la app, EL SISTEMA DEBERÁ mostrar la pantalla de ingreso con correo.
 - **R3.2** CUANDO el usuario ingrese un correo registrado en `personas`, EL SISTEMA DEBERÁ enviarle un código/enlace de acceso.
 - **R3.3** SI el correo no está registrado, ENTONCES EL SISTEMA DEBERÁ mostrar "Tu correo no está habilitado. Pide a tesorería que te agregue." sin crear la cuenta.

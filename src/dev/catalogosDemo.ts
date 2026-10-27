@@ -57,8 +57,6 @@ export function borradorDemo(): BorradorRendicion {
     empresaId: 2,
     fondo: 'FONDOS POR RENDIR CDA',
     totalFormulario: '70.389',
-    documentosLeidos: 1,
-    dudas: ['El RUT del proveedor no se lee bien en la boleta.'],
     respaldos: [],
     lineas: [
       lineaVacia({

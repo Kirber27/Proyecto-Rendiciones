@@ -88,12 +88,11 @@ const abierta = (): RendicionAbierta => ({
     fondo: '',
     totalFormulario: '',
     lineas: [lineaVacia({ exento: '5.000', subcuentaId: 8, cuentaId: 2, centroCostoId: 3 })],
-    dudas: [],
     respaldos: ['p-2/b/a.jpg'],
   },
   version: '2026-10-02T10:00:00Z',
   eventos: [{ evento: 'Aprobada', nota: 'Ingresada al libro como MSO-002', fecha: '2026-10-02' }],
-  fotos: [{ path: 'p-2/b/a.jpg', url: 'https://firmada/a.jpg' }],
+  respaldos: [{ path: 'p-2/b/a.jpg', url: 'https://firmada/a.jpg', tipo: 'imagen' }],
   notaTesoreria: null,
 })
 
@@ -202,15 +201,17 @@ describe('LibroView', () => {
     expect(srv.restaurarRendicion).toHaveBeenCalledWith('e')
   })
 
-  it('PDF con las fotos firmadas', async () => {
+  it('PDF con los respaldos firmados y su tipo', async () => {
     const w = await montar()
     await abrirFila(w, 'MSO-001')
     await boton(w, 'Descargar reporte PDF').trigger('click')
     await vi.waitFor(() => expect(otros.descargarReportePdf).toHaveBeenCalled())
-    const [modelo, fotos] = otros.descargarReportePdf.mock.calls[0]!
+    const [modelo, respaldos] = otros.descargarReportePdf.mock.calls[0]!
     expect(modelo.nombreArchivo).toBe('Rendicion_MSO-001_Mario_Soto.pdf')
     expect(modelo.notas.join(' ')).toContain('Estado de pago: Pagada')
-    expect(fotos).toEqual(['https://firmada/a.jpg'])
+    expect(respaldos).toEqual([
+      { path: 'p-2/b/a.jpg', url: 'https://firmada/a.jpg', tipo: 'imagen' },
+    ])
   })
 
   it('Excel (nuevas) exporta las no exportadas y las marca; sin nuevas avisa', async () => {

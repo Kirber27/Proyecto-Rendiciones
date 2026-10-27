@@ -2,21 +2,18 @@
 // Página de muestra (solo desarrollo): tema comparado con CLAUDE/app/rendiciones-heca.html y componentes
 // con los catálogos reales de la base. Datos de tablas y tarjetas: ficticios.
 import { onMounted, ref, watch } from 'vue'
-import { RespuestaLecturaSchema } from '@shared/lectura'
-import FotoDrop from '@/components/rendicion/FotoDrop.vue'
 import RendicionEditor from '@/components/rendicion/RendicionEditor.vue'
+import RespaldosDrop from '@/components/rendicion/RespaldosDrop.vue'
 import AppChip from '@/components/ui/AppChip.vue'
 import AppLightbox from '@/components/ui/AppLightbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import KpiTile from '@/components/ui/KpiTile.vue'
-import { hoy } from '@/domain/formato'
-import { aBorrador, mensajeErrorLectura } from '@/domain/lectura'
-import { lineaVacia, validarRendicion } from '@/domain/rendicion'
-import { prepararImagenes } from '@/lib/imagenes'
-import { leerFotos, MAX_IMAGENES_LECTURA } from '@/services/lectura'
-import { ErrorLectura } from '@shared/lectura'
+import { cuentaSugerida } from '@/domain/catalogos'
+import { norm } from '@/domain/formato'
+import { borradorNuevo, validarRendicion } from '@/domain/rendicion'
+import { tipoRespaldo } from '@/domain/respaldos'
 import { useCatalogosStore } from '@/stores/catalogos'
-import type { BorradorRendicion, ModoEditor } from '@/types/rendicion'
+import type { BorradorRendicion, ModoEditor, Respaldo } from '@/types/rendicion'
 
 const zoom = ref<string | null>(null)
 const imagenDemo =
@@ -25,99 +22,32 @@ const imagenDemo =
     '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600"><rect width="100%" height="100%" fill="#e6eefa"/><text x="50%" y="50%" font-family="sans-serif" font-size="28" text-anchor="middle" fill="#1f5fbf">Boleta de ejemplo</text></svg>',
   )
 
-// Fotos y recortes para la lectura IA (máximo 20 imágenes por lectura)
-const fotosSubidas = ref<{ file: File; url: string }[]>([])
-const recortes = ref<{ urls: string[]; nota: string } | null>(null)
-const preparando = ref(false)
-function agregarFotos(archivos: File[]) {
-  fotosSubidas.value.push(...archivos.map((file) => ({ file, url: URL.createObjectURL(file) })))
-}
-function quitarFoto(i: number) {
-  URL.revokeObjectURL(fotosSubidas.value[i]!.url)
-  fotosSubidas.value.splice(i, 1)
-  recortes.value = null
-}
-async function generarRecortes() {
-  preparando.value = true
-  recortes.value?.urls.forEach((u) => URL.revokeObjectURL(u))
-  const r = await prepararImagenes(
-    fotosSubidas.value.map((f) => f.file),
-    20,
+// Respaldos adjuntos (solo en esta página: no se suben)
+const adjuntos = ref<Respaldo[]>([])
+function adjuntar(archivos: File[]) {
+  adjuntos.value.push(
+    ...archivos.map((f) => ({
+      url: URL.createObjectURL(f),
+      tipo: tipoRespaldo(f.type || f.name),
+      nombre: f.name,
+      quitable: true,
+    })),
   )
-  recortes.value = { urls: r.imagenes.map((b) => URL.createObjectURL(b)), nota: r.nota }
-  preparando.value = false
+}
+function quitarAdjunto(i: number) {
+  URL.revokeObjectURL(adjuntos.value[i]!.url)
+  adjuntos.value.splice(i, 1)
 }
 
-// Lectura real con la Edge Function (consume una lectura del cupo diario)
-const leyendo = ref(false)
-const lectura = ref<{ tipo: string; texto: string } | null>(null)
-let controlLectura: AbortController | null = null
-async function leerConIA() {
-  leyendo.value = true
-  lectura.value = null
-  controlLectura = new AbortController()
-  const inicio = performance.now()
-  try {
-    const r = await prepararImagenes(
-      fotosSubidas.value.map((f) => f.file),
-      MAX_IMAGENES_LECTURA,
-    )
-    const respuesta = await leerFotos(r.imagenes, r.nota, controlLectura.signal)
-    borrador.value = aBorrador(respuesta, { catalogos: cat.catalogos, hoy: hoy() })
-    problemas.value = []
-    const seg = Math.round((performance.now() - inicio) / 1000)
-    lectura.value = {
-      tipo: 'success',
-      texto: `Leído en ${seg} s con ${r.imagenes.length} imagen(es). El resultado está en el editor de más abajo.`,
-    }
-  } catch (e) {
-    const m = mensajeErrorLectura(e instanceof ErrorLectura ? e.codigo : 'error')
-    lectura.value = { tipo: m.tipo, texto: m.texto }
-  } finally {
-    leyendo.value = false
-    controlLectura = null
-  }
-}
-
-// Editor de rendición con el caso DHE-042, armado como si viniera de la lectura IA
-// (así se ve el mapeo de nombres a ids con los catálogos reales).
+// Editor de rendición con el caso DHE-042, armado con los catálogos reales de la base.
 const cat = useCatalogosStore()
 onMounted(() => cat.cargar())
-const respuestaDemo = RespuestaLecturaSchema.parse({
-  documentos: [{ foto: 1, tipo: 'Boleta', proveedor: 'ISP', numero: '2026101400444231' }],
-  solicitante: 'David Herce',
-  nro: 42,
-  fecha: '2026-10-14',
-  empresa: 'Hecaglobal Instruments SPA',
-  fondo: 'FONDOS POR RENDIR CDA',
-  totalFormulario: 70389,
-  lineas: [
-    {
-      fecha: '2026-10-14',
-      tipo: 'Boleta',
-      proveedor: 'ISP',
-      numero: '2026101400444231',
-      exento: 70389,
-      detalle: 'CDA IMP ADEOR 07',
-      subcuenta: 'Instituto Salud Publica (CDA)',
-    },
-  ],
-  dudas: ['El RUT del proveedor no se lee bien en la boleta.'],
-})
 const modo = ref<ModoEditor>('persona')
-const borrador = ref<BorradorRendicion>({
-  personaId: null,
-  nro: '',
-  fecha: '',
-  empresaId: null,
-  fondo: '',
-  totalFormulario: '',
-  lineas: [lineaVacia()],
-  dudas: [],
-  respaldos: [],
-})
+const borrador = ref<BorradorRendicion>(
+  borradorNuevo({ catalogos: cat.catalogos, personaFija: null, hoy: '2026-10-14' }),
+)
 const problemas = ref<string[]>([])
-const fotosDemo = ref([{ url: imagenDemo, quitable: true }])
+const fotosDemo = ref<Respaldo[]>([{ url: imagenDemo, tipo: 'imagen', quitable: true }])
 function validar() {
   problemas.value = validarRendicion(borrador.value, {
     esTesoreria: modo.value !== 'persona',
@@ -125,7 +55,20 @@ function validar() {
   })
 }
 function reiniciar() {
-  borrador.value = aBorrador(respuestaDemo, { catalogos: cat.catalogos, hoy: hoy() })
+  const b = borradorNuevo({ catalogos: cat.catalogos, personaFija: null, hoy: '2026-10-14' })
+  const sub = cat.catalogos.subcuentas.find(
+    (x) => norm(x.nombre) === norm('Instituto Salud Publica (CDA)'),
+  )
+  Object.assign(b, { nro: '42', fondo: 'FONDOS POR RENDIR CDA', totalFormulario: '70.389' })
+  Object.assign(b.lineas[0]!, {
+    proveedor: 'ISP',
+    numero: '2026101400444231',
+    exento: '70.389',
+    detalle: 'CDA IMP ADEOR 07',
+    subcuentaId: sub?.id ?? null,
+    cuentaId: cuentaSugerida(sub?.id ?? null, cat.catalogos.subcuentas),
+  })
+  borrador.value = b
   problemas.value = []
 }
 watch(
@@ -211,9 +154,9 @@ const sel = ref('MSO-004')
         v-model="borrador"
         :modo="modo"
         :catalogos="cat.catalogos"
-        :fotos="fotosDemo"
+        :respaldos="fotosDemo"
         :problemas="problemas"
-        @quitar-foto="fotosDemo.splice($event, 1)"
+        @quitar-respaldo="fotosDemo.splice($event, 1)"
       >
         <template #acciones>
           <button
@@ -240,72 +183,16 @@ const sel = ref('MSO-004')
     <hr />
 
     <section class="d-flex flex-column gap-3">
-      <h2 class="mb-0">Fotos y recortes para la IA</h2>
-      <FotoDrop
-        :fotos="fotosSubidas.map((f) => ({ url: f.url, quitable: true }))"
-        :leyendo="preparando"
-        @agregar="agregarFotos"
-        @quitar="quitarFoto"
-      />
-      <div class="d-flex gap-2">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          :disabled="!fotosSubidas.length || preparando"
-          @click="generarRecortes"
-        >
-          Generar recortes
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          :disabled="!fotosSubidas.length || leyendo || !cat.listo"
-          @click="leerConIA"
-        >
-          {{ leyendo ? 'Leyendo…' : 'Leer con IA' }}
-        </button>
-        <button
-          v-if="leyendo"
-          type="button"
-          class="btn btn-outline-secondary"
-          @click="controlLectura?.abort()"
-        >
-          Detener
-        </button>
-      </div>
-      <div v-if="lectura" :class="['alert', `alert-${lectura.tipo}`, 'mb-0']">
-        {{ lectura.texto }}
-      </div>
-      <div v-if="recortes" class="card">
-        <div class="card-body d-flex flex-column gap-2">
-          <b>{{ recortes.urls.length }} imagen(es) para enviar</b>
-          <div class="thumbs">
-            <figure v-for="(u, i) in recortes.urls" :key="u">
-              <img :src="u" :alt="`Imagen ${i + 1}`" @click="zoom = u" />
-            </figure>
-          </div>
-          <pre class="small mb-0" style="white-space: pre-wrap">{{ recortes.nota }}</pre>
-        </div>
-      </div>
+      <h2 class="mb-0">Adjuntar respaldos</h2>
+      <RespaldosDrop :respaldos="adjuntos" @agregar="adjuntar" @quitar="quitarAdjunto" />
     </section>
 
     <hr />
 
     <div class="steps">
-      <div><b>1. Sube las fotos</b>Formulario completo y legible, más boletas y facturas.</div>
-      <div><b>2. Revisa</b>Los datos aparecen solos. Corrige si algo se leyó mal.</div>
+      <div><b>1. Completa el formulario</b>Nº, fecha, empresa y cada gasto con su monto.</div>
+      <div><b>2. Adjunta los respaldos</b>Foto o PDF del formulario firmado y de las boletas.</div>
       <div><b>3. Envía</b>Tesorería la aprueba, la ingresa y te avisa aquí cuando se paga.</div>
-    </div>
-
-    <div class="drop">
-      <button type="button" class="btn btn-primary btn-lg">Sacar o subir fotos</button>
-      <span class="small text-body-secondary"
-        >JPG, PNG o WebP. Si la boleta llegó en PDF, sube un pantallazo.</span
-      >
-      <div class="reading">
-        <span class="dot" /><b>Leyendo la rendición…</b
-        ><button type="button" class="btn btn-sm btn-outline-secondary">Detener</button>
-      </div>
     </div>
 
     <section class="card">

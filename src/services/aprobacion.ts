@@ -1,9 +1,15 @@
 // Por aprobar (spec 03): bandeja de tesorería, carga de una rendición y decisiones (RPC de la migración 12).
-import { montoATexto } from '@/domain/lectura'
+import { montoATexto } from '@/domain/formato'
 import { limpiarRendicion } from '@/domain/rendicion'
+import { tipoRespaldo } from '@/domain/respaldos'
 import type { Json, Tables } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
-import type { BorradorRendicion, EventoRendicion, TipoDocumento } from '@/types/rendicion'
+import type {
+  BorradorRendicion,
+  EventoRendicion,
+  RespaldoGuardado,
+  TipoDocumento,
+} from '@/types/rendicion'
 import { BUCKET_RESPALDOS } from './rendiciones'
 
 export interface FilaBandeja {
@@ -30,7 +36,7 @@ export interface RendicionAbierta {
   /** editado_en al abrir: si la persona la reenvía entretanto, la base no deja pisarla. */
   version: string | null
   eventos: EventoRendicion[]
-  fotos: { path: string; url: string }[]
+  respaldos: RespaldoGuardado[]
   notaTesoreria: string | null
 }
 
@@ -143,12 +149,18 @@ export function aBorradorDesdeBase(
         cuentaId: l.cuenta_id,
         centroCostoId: l.centro_costo_id,
       })),
-    dudas: [],
     respaldos,
   }
 }
 
-/** URLs firmadas (1 hora) para mostrar las fotos del bucket privado. */
+/** Respaldos con URL firmada (los que no la obtuvieron se omiten), en el orden de `paths`. */
+export function respaldosGuardados(paths: string[], urls: Map<string, string>): RespaldoGuardado[] {
+  return paths
+    .filter((p) => urls.has(p))
+    .map((p) => ({ path: p, url: urls.get(p)!, tipo: tipoRespaldo(p) }))
+}
+
+/** URLs firmadas (1 hora) para mostrar los respaldos del bucket privado. */
 export async function urlsFirmadas(paths: string[]): Promise<Map<string, string>> {
   if (!paths.length) return new Map()
   const { data, error } = await supabase.storage
@@ -179,7 +191,7 @@ export async function abrirRendicion(id: string): Promise<RendicionAbierta> {
     borrador: aBorradorDesdeBase(cab.data!, lin.data ?? [], paths),
     version: cab.data!.editado_en,
     eventos: (eve.data ?? []).map((e) => ({ evento: e.evento, nota: e.nota, fecha: e.creado_en })),
-    fotos: paths.filter((p) => urls.has(p)).map((p) => ({ path: p, url: urls.get(p)! })),
+    respaldos: respaldosGuardados(paths, urls),
     notaTesoreria: cab.data!.nota_tesoreria,
   }
 }

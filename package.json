@@ -18,7 +18,8 @@
     "db:types": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts",
     "db:datos": "node scripts/generar-datos-iniciales.mjs",
     "db:probar": "node scripts/probar-migraciones.mjs",
-    "db:historial": "node --env-file=.env.local scripts/importar-historial.mjs"
+    "db:historial": "node --env-file=.env.local scripts/importar-historial.mjs",
+    "cuenta:clave": "node --env-file=.env.local scripts/clave-temporal.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -29,11 +30,11 @@
     "bootstrap-icons": "^1.13.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
+    "pdf-lib": "^1.17.1",
     "pinia": "^4.1.0",
     "vue": "^3.5.44",
     "vue-router": "^5.4.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^4.6.7"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.12",

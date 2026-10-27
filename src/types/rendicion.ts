@@ -56,7 +56,7 @@ export interface LineaBorrador extends MontosLinea {
   centroCostoId: number | null
 }
 
-/** Rendición mientras se edita: la arma la lectura IA y la corrige la persona o tesorería. */
+/** Rendición mientras se edita: la completa la persona y la corrige tesorería. */
 export interface BorradorRendicion {
   /** Id de la rendición si ya existe (reenvío, aprobación o edición en el libro). */
   id?: string
@@ -67,10 +67,6 @@ export interface BorradorRendicion {
   fondo: string
   totalFormulario: string
   lineas: LineaBorrador[]
-  /** Avisos de la lectura IA para que la persona revise. */
-  dudas: string[]
-  /** Cantidad de documentos que la IA encontró en las fotos. */
-  documentosLeidos?: number
   /** Rutas en Storage de los respaldos ya guardados. */
   respaldos: string[]
 }
@@ -108,9 +104,22 @@ export interface RendicionPayload {
 /** Modo del editor: persona (Rendir gastos), aprobar (Por aprobar), libro (edición en el libro). */
 export type ModoEditor = 'persona' | 'aprobar' | 'libro'
 
-/** Foto de respaldo para mostrar: URL local (blob:) o firmada de Storage. */
+/** Un respaldo es una foto o un PDF. */
+export type TipoRespaldo = 'imagen' | 'pdf'
+
+/** Respaldo para mostrar: URL local (blob:) o firmada de Storage. */
 export interface Respaldo {
   url: string
-  /** Si se puede quitar (fotos nuevas aún no enviadas). */
+  tipo: TipoRespaldo
+  /** Nombre del archivo (se muestra en la ficha de los PDF). */
+  nombre?: string
+  /** Si se puede quitar (adjuntos aún no enviados). */
   quitable?: boolean
+}
+
+/** Respaldo guardado en Storage, con su URL firmada. */
+export interface RespaldoGuardado {
+  path: string
+  url: string
+  tipo: TipoRespaldo
 }

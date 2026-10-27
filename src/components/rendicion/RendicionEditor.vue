@@ -2,7 +2,8 @@
 // Editor de rendición (porta editor() del prototipo). Mismo componente para los tres modos:
 //   persona → Rendir gastos (sin Cuenta ni C.C.)
 //   aprobar → Por aprobar · libro → edición en el libro (con Cuenta y C.C.)
-// Los botones los pone cada pantalla en el slot #acciones.
+// Los botones los pone cada pantalla en el slot #acciones; Rendir gastos pone en #respaldos la zona
+// para adjuntar (por defecto se muestran los respaldos, si hay).
 import { computed } from 'vue'
 import { centroCostoDeEmpresa } from '@/domain/catalogos'
 import { lineaVacia, sumaLineas, totalFormularioDe } from '@/domain/rendicion'
@@ -18,14 +19,14 @@ const props = withDefaults(
   defineProps<{
     modo: ModoEditor
     catalogos: Catalogos
-    fotos?: Respaldo[]
+    respaldos?: Respaldo[]
     solicitanteFijo?: boolean
     /** Problemas de validación a mostrar sobre los botones. */
     problemas?: string[]
   }>(),
-  { fotos: () => [], solicitanteFijo: false, problemas: () => [] },
+  { respaldos: () => [], solicitanteFijo: false, problemas: () => [] },
 )
-const emit = defineEmits<{ quitarFoto: [indice: number] }>()
+const emit = defineEmits<{ quitarRespaldo: [indice: number] }>()
 
 const conCuentas = computed(() => props.modo !== 'persona')
 const suma = computed(() => sumaLineas(d.value))
@@ -45,18 +46,6 @@ function agregarLinea() {
   <div class="d-flex flex-column gap-3">
     <DatosFormulario v-model="d" :catalogos="catalogos" :solicitante-fijo="solicitanteFijo" />
 
-    <div v-if="d.documentosLeidos != null" class="alert alert-primary mb-0">
-      Se encontraron {{ d.documentosLeidos }} documento(s) en las fotos y se armaron
-      {{ d.lineas.length }} línea(s) de gasto. Si falta alguna boleta, sácale una foto aparte y
-      vuelve a leer.
-    </div>
-    <div v-if="d.dudas.length" class="alert alert-warning mb-0">
-      <b>Revisa esto:</b>
-      <ul class="mb-0 ps-3">
-        <li v-for="(x, i) in d.dudas" :key="i">{{ x }}</li>
-      </ul>
-    </div>
-
     <section class="card">
       <div class="card-body d-flex flex-column gap-3">
         <div class="d-flex justify-content-between align-items-center">
@@ -70,10 +59,12 @@ function agregarLinea() {
       </div>
     </section>
 
-    <section v-if="fotos.length" class="card">
+    <section v-if="$slots.respaldos || respaldos.length" class="card">
       <div class="card-body d-flex flex-column gap-3">
-        <h2>Respaldos ({{ fotos.length }})</h2>
-        <RespaldosGrid :fotos="fotos" @quitar="emit('quitarFoto', $event)" />
+        <h2>Respaldos ({{ respaldos.length }})</h2>
+        <slot name="respaldos">
+          <RespaldosGrid :respaldos="respaldos" @quitar="emit('quitarRespaldo', $event)" />
+        </slot>
       </div>
     </section>
 

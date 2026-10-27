@@ -155,39 +155,6 @@ export type Database = {
           },
         ]
       }
-      lecturas_ia: {
-        Row: {
-          creado_en: string
-          error: string | null
-          id: number
-          imagenes: number
-          ok: boolean
-          tokens_entrada: number | null
-          tokens_salida: number | null
-          user_id: string | null
-        }
-        Insert: {
-          creado_en?: string
-          error?: string | null
-          id?: never
-          imagenes?: number
-          ok: boolean
-          tokens_entrada?: number | null
-          tokens_salida?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          creado_en?: string
-          error?: string | null
-          id?: never
-          imagenes?: number
-          ok?: boolean
-          tokens_entrada?: number | null
-          tokens_salida?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       medios_pago: {
         Row: {
           id: number

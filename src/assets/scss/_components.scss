@@ -272,6 +272,37 @@ tr:focus-visible,
     object-fit: cover;
     cursor: zoom-in;
   }
+  .thumb-pdf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    padding: 8px 6px;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    font-size: 11px;
+    line-height: 1.25;
+    text-align: center;
+    word-break: break-word;
+
+    i {
+      font-size: 32px;
+      color: var(--bs-danger);
+    }
+    span {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    &:hover span {
+      text-decoration: underline;
+    }
+  }
   .thumb-quitar {
     position: absolute;
     top: 4px;
@@ -311,28 +342,6 @@ tr:focus-visible,
   padding: 32px;
   text-align: center;
   color: var(--bs-secondary-color);
-}
-
-// Indicador "Leyendo…"
-.reading {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--bs-primary);
-  animation: pulse 1s infinite alternate;
-}
-@keyframes pulse {
-  from {
-    opacity: 0.25;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

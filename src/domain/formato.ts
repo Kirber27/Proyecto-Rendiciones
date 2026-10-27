@@ -68,6 +68,13 @@ export function clp(n: number | null | undefined): string {
   return (v < -0.5 ? '-' : '') + '$ ' + miles(v)
 }
 
+/** Monto → texto para el editor ("70.389"; decimales con coma); 0 o vacío → "". */
+export function montoATexto(v: Texto): string {
+  const n = num(v)
+  if (!n) return ''
+  return Number.isInteger(n) ? (n < 0 ? '-' : '') + miles(n) : String(n).replace('.', ',')
+}
+
 /** Date → "YYYY-MM-DD" en hora local. */
 export function iso(d: Date): string {
   return (

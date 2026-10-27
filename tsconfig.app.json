@@ -6,8 +6,7 @@
     "allowArbitraryExtensions": true,
     "strict": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./supabase/functions/_shared/*"]
+      "@/*": ["./src/*"]
     },
 
     /* Linting */
@@ -16,6 +15,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "supabase/functions/_shared/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
 }

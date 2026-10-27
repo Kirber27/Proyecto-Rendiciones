@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { catalogosDemo } from '@/dev/catalogosDemo'
 import type { BorradorRendicion } from '@/types/rendicion'
 import {
+  borradorNuevo,
   cuadra,
   lineaVacia,
   limpiarRendicion,
   sumaLineas,
+  tieneDatos,
   totalFormularioDe,
   totalLinea,
   totalRendicion,
@@ -62,7 +65,6 @@ function borrador(cambios: Partial<BorradorRendicion> = {}): BorradorRendicion {
     empresaId: 2,
     fondo: ' FONDOS POR RENDIR  CDA ',
     totalFormulario: '70.389',
-    dudas: [],
     respaldos: [],
     lineas: [
       lineaVacia({
@@ -87,6 +89,55 @@ describe('lineaVacia', () => {
     expect(l.fecha).toBe('2026-10-14')
     expect(l.centroCostoId).toBe(3)
     expect(l.subcuentaId).toBeNull()
+  })
+})
+
+describe('borradorNuevo', () => {
+  it('fecha de hoy, empresa por defecto (HGI) y una línea con su C.C.', () => {
+    const d = borradorNuevo({ catalogos: catalogosDemo, personaFija: 'p-1', hoy: '2026-10-26' })
+    expect(d).toMatchObject({
+      personaId: 'p-1',
+      nro: '',
+      fecha: '2026-10-26',
+      empresaId: 2,
+      fondo: '',
+      totalFormulario: '',
+      respaldos: [],
+    })
+    expect(d.lineas).toEqual([lineaVacia({ fecha: '2026-10-26', centroCostoId: 3 })])
+  })
+  it('sin persona fija el solicitante queda vacío; sin empresas, sin empresa', () => {
+    const d = borradorNuevo({ catalogos: { empresas: [] }, personaFija: null, hoy: '2026-10-26' })
+    expect(d.personaId).toBeNull()
+    expect(d.empresaId).toBeNull()
+    expect(d.lineas[0]!.centroCostoId).toBeNull()
+  })
+})
+
+describe('tieneDatos', () => {
+  const vacio = () => borradorNuevo({ catalogos: catalogosDemo, personaFija: 'p-1', hoy: '2026-10-26' })
+  it('un formulario recién creado no tiene datos', () => {
+    expect(tieneDatos(vacio())).toBe(false)
+  })
+  it.each<[string, (d: BorradorRendicion) => void]>([
+    ['Nº', (d) => (d.nro = '4')],
+    ['fondo', (d) => (d.fondo = 'FONDOS POR RENDIR')],
+    ['total del formulario', (d) => (d.totalFormulario = '1.000')],
+    ['respaldo guardado', (d) => d.respaldos.push('p-1/r/a.jpg')],
+    ['segunda línea', (d) => d.lineas.push(lineaVacia())],
+    ['proveedor', (d) => (d.lineas[0]!.proveedor = 'COPEC')],
+    ['monto', (d) => (d.lineas[0]!.exento = '15.000')],
+    ['subcuenta', (d) => (d.lineas[0]!.subcuentaId = 8)],
+  ])('con %s sí tiene datos', (_, cambiar) => {
+    const d = vacio()
+    cambiar(d)
+    expect(tieneDatos(d)).toBe(true)
+  })
+  it('espacios en blanco no cuentan', () => {
+    const d = vacio()
+    d.nro = '  '
+    d.lineas[0]!.detalle = ' '
+    expect(tieneDatos(d)).toBe(false)
   })
 })
 
@@ -138,6 +189,13 @@ describe('validarRendicion', () => {
       'Línea 1: elige la subcuenta.',
       'Línea 1: elige la cuenta.',
     ])
+  })
+
+  it('Rendir gastos exige al menos un respaldo; sin el dato (libro) no se exige', () => {
+    const falta = 'Adjunta al menos un respaldo: la foto del formulario o de las boletas.'
+    expect(validarRendicion(borrador(), { ...ctxPersona, respaldos: 0 })).toEqual([falta])
+    expect(validarRendicion(borrador(), { ...ctxPersona, respaldos: 2 })).toEqual([])
+    expect(validarRendicion(borrador(), ctxTesoreria)).toEqual([])
   })
 
   it('la suma debe cuadrar con el total del formulario (±1)', () => {

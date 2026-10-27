@@ -1,18 +1,27 @@
-// Envío de rendiciones (spec 02, 2.7): fotos a Storage (bucket privado `respaldos`) + RPC enviar_rendicion.
+// Envío de rendiciones (spec 02): respaldos (fotos y PDF) a Storage (bucket privado `respaldos`)
+// + RPC enviar_rendicion.
 import { limpiarRendicion, sumaLineas } from '@/domain/rendicion'
+import { tipoRespaldo } from '@/domain/respaldos'
 import type { Json } from '@/lib/database.types'
 import { reducirImagen } from '@/lib/imagenes'
 import { supabase } from '@/lib/supabase'
-import type { BorradorRendicion } from '@/types/rendicion'
+import type { BorradorRendicion, TipoRespaldo } from '@/types/rendicion'
 
 export const BUCKET_RESPALDOS = 'respaldos'
 
-/** Ruta de una foto: <persona_id>/<rendicion_id>/<uuid>.jpg (la exigen las políticas de Storage y la RPC). */
-export const rutaRespaldo = (personaId: string, rendicionId: string, nombre: string) =>
-  `${personaId}/${rendicionId}/${nombre}.jpg`
+/**
+ * Ruta de un respaldo: <persona_id>/<rendicion_id>/<uuid>.jpg o .pdf
+ * (la carpeta la exigen las políticas de Storage y la RPC; la extensión dice el tipo).
+ */
+export const rutaRespaldo = (
+  personaId: string,
+  rendicionId: string,
+  nombre: string,
+  tipo: TipoRespaldo = 'imagen',
+) => `${personaId}/${rendicionId}/${nombre}.${tipo === 'pdf' ? 'pdf' : 'jpg'}`
 
-export interface FotoParaEnviar {
-  /** Id local estable de la foto (se usa como nombre del archivo para no duplicar en reintentos). */
+export interface ArchivoParaEnviar {
+  /** Id local estable del archivo (se usa como nombre en Storage para no duplicar en reintentos). */
   id: string
   file: File
 }
@@ -20,7 +29,7 @@ export interface FotoParaEnviar {
 export interface OpcionesEnvio {
   /** Id de la rendición: el de la existente (reenvío) o uno generado una vez por el store (nueva). */
   rendicionId: string
-  /** Fotos ya subidas en un intento anterior (id local → ruta). Se actualiza aquí. */
+  /** Archivos ya subidos en un intento anterior (id local → ruta). Se actualiza aquí. */
   subidas: Map<string, string>
   onProgreso?: (texto: string) => void
 }
@@ -32,11 +41,11 @@ export interface ResultadoEnvio {
   reenvio: boolean
 }
 
-async function subirConReintento(ruta: string, archivo: Blob): Promise<boolean> {
+async function subirConReintento(ruta: string, archivo: Blob, contentType: string): Promise<boolean> {
   for (let intento = 0; intento < 2; intento++) {
     const { error } = await supabase.storage
       .from(BUCKET_RESPALDOS)
-      .upload(ruta, archivo, { contentType: 'image/jpeg', upsert: false })
+      .upload(ruta, archivo, { contentType, upsert: false })
     // "Ya existe": llegó en un intento anterior aunque no recibimos la respuesta.
     if (!error || /exists|duplicate/i.test(error.message)) return true
   }
@@ -44,35 +53,39 @@ async function subirConReintento(ruta: string, archivo: Blob): Promise<boolean> 
 }
 
 /**
- * Sube las fotos que falten (reducidas a 2400 px) y envía la rendición.
- * Si alguna foto no se pudo subir, no envía y avisa cuál (R4.4); el reintento solo sube las que faltan.
+ * Sube los respaldos que falten (fotos reducidas a 2400 px; PDF tal cual) y envía la rendición.
+ * Si alguno no se pudo subir, no envía y avisa cuál (R3.4); el reintento solo sube los que faltan.
  */
 export async function enviarRendicion(
   borrador: BorradorRendicion,
-  fotos: readonly FotoParaEnviar[],
+  archivos: readonly ArchivoParaEnviar[],
   { rendicionId, subidas, onProgreso }: OpcionesEnvio,
 ): Promise<ResultadoEnvio> {
   const reenvio = !!borrador.id
   const payload = limpiarRendicion({ ...borrador, id: rendicionId })
 
-  const fallidas: number[] = []
-  for (let i = 0; i < fotos.length; i++) {
-    const f = fotos[i]!
-    if (subidas.has(f.id)) continue
-    onProgreso?.(`Guardando foto ${i + 1} de ${fotos.length}…`)
-    const ruta = rutaRespaldo(payload.persona_id, rendicionId, f.id)
-    const blob = await reducirImagen(f.file, 2400, 0.85)
-    if (await subirConReintento(ruta, blob)) subidas.set(f.id, ruta)
-    else fallidas.push(i + 1)
+  const fallidos: number[] = []
+  for (let i = 0; i < archivos.length; i++) {
+    const a = archivos[i]!
+    if (subidas.has(a.id)) continue
+    onProgreso?.(`Guardando respaldo ${i + 1} de ${archivos.length}…`)
+    const tipo = tipoRespaldo(a.file.type || a.file.name)
+    const ruta = rutaRespaldo(payload.persona_id, rendicionId, a.id, tipo)
+    const subido =
+      tipo === 'pdf'
+        ? await subirConReintento(ruta, a.file, 'application/pdf')
+        : await subirConReintento(ruta, await reducirImagen(a.file, 2400, 0.85), 'image/jpeg')
+    if (subido) subidas.set(a.id, ruta)
+    else fallidos.push(i + 1)
   }
-  if (fallidas.length) {
+  if (fallidos.length) {
     throw new Error(
-      `No se pudo guardar la foto ${fallidas.join(', ')}. Revisa tu conexión e intenta de nuevo; la rendición todavía no se envió.`,
+      `No se pudo guardar el respaldo ${fallidos.join(', ')}. Revisa tu conexión e intenta de nuevo; la rendición todavía no se envió.`,
     )
   }
 
   onProgreso?.('Enviando…')
-  const nuevas = fotos.map((f) => subidas.get(f.id)!)
+  const nuevas = archivos.map((a) => subidas.get(a.id)!)
   const { error } = await supabase.rpc('enviar_rendicion', {
     // El payload es JSON plano; el tipo Json generado no acepta interfaces sin índice.
     p: { ...payload, respaldos: [...borrador.respaldos, ...nuevas] } as unknown as Json,

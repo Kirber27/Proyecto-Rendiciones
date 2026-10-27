@@ -221,6 +221,25 @@ await como(raul, async () => {
   await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: foto de otra carpeta', [envio({ id: '00000000-0000-4000-8000-000000000003', respaldos: [`${dhePersona}/x/a.jpg`] })])
   await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: sin líneas', [envio({ id: '00000000-0000-4000-8000-000000000004', lineas: [] })])
 })
+
+// ---------- Respaldos obligatorios y PDF (2.11) ----------
+ok((await valor(`select 'application/pdf' = any(allowed_mime_types) from storage.buckets where id = 'respaldos'`)) === true, 'bucket respaldos: acepta PDF')
+await como(raul, async () => {
+  const sinRespaldo = '00000000-0000-4000-8000-000000000007'
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: sin respaldos no se envía', [envio({ id: sinRespaldo, respaldos: [] })])
+  ok((await valor(`select count(*)::int from public.rendiciones where id = $1`, [sinRespaldo])) === 0, 'enviar_rendicion: sin respaldos no deja nada a medias')
+  const conPdf = '00000000-0000-4000-8000-000000000008'
+  await db.query(`select public.enviar_rendicion($1::jsonb)`, [envio({ id: conPdf, respaldos: [`${raulPersona}/${conPdf}/a.jpg`, `${raulPersona}/${conPdf}/b.pdf`] })])
+  const mimes = (await db.query(`select mime from public.respaldos where rendicion_id = $1 order by orden`, [conPdf])).rows.map((x) => x.mime)
+  ok(JSON.stringify(mimes) === '["image/jpeg","application/pdf"]', 'enviar_rendicion: guarda fotos y PDF con su mime')
+  await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: extensión no permitida', [envio({ id: '00000000-0000-4000-8000-000000000009', respaldos: [`${raulPersona}/00000000-0000-4000-8000-000000000009/a.exe`] })])
+})
+await db.query(`update public.rendiciones set estado = 'observada' where id = $1`, ['00000000-0000-4000-8000-000000000008'])
+await como(raul, async () => {
+  const conPdf = '00000000-0000-4000-8000-000000000008'
+  await db.query(`select public.enviar_rendicion($1::jsonb)`, [envio({ id: conPdf, respaldos: [] })])
+  ok((await valor(`select estado::text from public.rendiciones where id = $1`, [conPdf])) === 'en_revision', 'reenvío: sin adjuntos nuevos pasa si ya tiene respaldos guardados')
+})
 // Tesorería la observa (por ahora directo; la RPC de decisiones es 3.2) y Raúl la reenvía corregida
 await db.query(`update public.rendiciones set estado = 'observada' where id = $1`, [nuevaId])
 await como(raul, async () => {
@@ -247,7 +266,7 @@ await como(extra, async () => {
 // ---------- Por aprobar (spec 03) ----------
 const ids = { a: '00000000-0000-4000-8000-0000000000a1', b: '00000000-0000-4000-8000-0000000000b1', c: '00000000-0000-4000-8000-0000000000c1' }
 const envioRaul = (id, nro, lineas) =>
-  JSON.stringify({ id, persona_id: raulPersona, nro, fecha: '2026-10-21', empresa_id: 2, lineas, respaldos: [] })
+  JSON.stringify({ id, persona_id: raulPersona, nro, fecha: '2026-10-21', empresa_id: 2, lineas, respaldos: [`${raulPersona}/${id}/a.jpg`] })
 const conCuenta = [{ tipo: 'Boleta', exento: 1000, subcuenta_id: 8, cuenta_id: 2, centro_costo_id: 3 }]
 const sinCuenta = [{ tipo: 'Boleta', exento: 1000, subcuenta_id: 8 }]
 const version = async (id) => valor(`select editado_en::text from public.rendiciones where id = $1`, [id])

@@ -50,7 +50,6 @@ const abierta = (): RendicionAbierta => ({
     fondo: '',
     totalFormulario: '15.000',
     lineas: [lineaVacia({ exento: '15.000', subcuentaId: 8, cuentaId: null })],
-    dudas: [],
     respaldos: ['p-2/r-1/a.jpg'],
   },
   version: '2026-10-21T10:00:00Z',
@@ -59,7 +58,7 @@ const abierta = (): RendicionAbierta => ({
     { evento: 'Observada', nota: 'Falta la boleta', fecha: '2026-10-20T12:00:00Z' },
     { evento: 'Reenviada', nota: null, fecha: '2026-10-21T10:00:00Z' },
   ],
-  fotos: [{ path: 'p-2/r-1/a.jpg', url: 'https://firmada/a.jpg' }],
+  respaldos: [{ path: 'p-2/r-1/a.jpg', url: 'https://firmada/a.jpg', tipo: 'imagen' }],
   notaTesoreria: 'Falta la boleta',
 })
 

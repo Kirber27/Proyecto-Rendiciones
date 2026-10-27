@@ -37,8 +37,10 @@ Portadas del prototipo (`CLAUDE/app/rendiciones-heca.html`). Entre paréntesis, 
 - Cada línea con monto > 0.
 - Tesorería (al aprobar o editar en el libro) además exige **subcuenta y cuenta** en cada línea.
 - Si hay total del formulario, debe cuadrar (±1).
+- **Al menos un respaldo** (foto o PDF) al enviar desde Rendir gastos; en un reenvío cuentan los ya guardados. Lo exige también la RPC `enviar_rendicion`. Al aprobar o editar en el libro no se exige (el historial no tiene respaldos).
 - Al elegir subcuenta, la cuenta se sugiere con `subcuenta_a_cuenta` (editable por tesorería).
 - El C.C. por defecto de cada línea es el de la empresa elegida.
+- Formulario nuevo: fecha de hoy, empresa *Hecaglobal Instruments SPA*, una línea vacía. Si el usuario está vinculado a una persona y no es tesorería, el solicitante queda **fijo** en su persona.
 
 ## Estados de una rendición
 
@@ -90,15 +92,13 @@ Para cada **cargo** de cartola sin asignar ni ignorar, en orden de fecha:
 - Columnas a mapear: Fecha, Descripción, Cargo, Abono, Monto (si viene en una sola columna: negativo = cargo), Nº operación. Se adivinan por regex y se pueden corregir.
 - Se descartan filas sin fecha o sin monto. Glosa recortada a 140 caracteres.
 
-## Lectura con IA (`buildPrompt`, `prepImages`, `leer`)
+## Respaldos adjuntos
 
-- Se envía cada foto completa y, si el cupo de imágenes lo permite, recortes ampliados que se traslapan: 4 cuadrantes (55% c/u) si caben 5 imágenes por foto, o 2 mitades si caben 3. Lado máximo 2400 px, JPEG 0,9. Se informa al modelo qué es cada imagen.
-- Se pide primero un **inventario de documentos** y luego las líneas. Si hay formulario, **sus filas mandan** y las boletas solo completan datos; documentos que no están en el formulario se agregan avisando en `dudas`.
-- El modelo elige subcuenta, solicitante y empresa **de las listas** (texto exacto).
-- Respuesta JSON: `{documentos[], solicitante, nro, fecha, empresa, fondo, totalFormulario, lineas[], dudas[]}`. Se valida con zod; si no es JSON válido → error "No se pudieron ordenar los datos…".
-- Si el usuario está vinculado a una persona y no es tesorería, el solicitante queda **fijo** en su persona.
-- Empresa no reconocida → por defecto *Hecaglobal Instruments SPA*.
-- Mensajes de error en español para: cancelado, límite de uso alcanzado, imagen rechazada, JSON inválido, error genérico.
+- Se aceptan **imágenes** (JPG, PNG, WebP; HEIC si el navegador lo convierte) y **PDF**. Otros archivos se descartan con aviso.
+- Las fotos se reducen en el navegador a lado máximo 2400 px, JPEG 0,85, antes de subirlas. Los PDF se suben tal cual; máximo **10 MB** por archivo (límite del bucket).
+- Ruta en Storage: `<persona_id>/<rendicion_id>/<uuid>.jpg` o `.pdf`. El tipo (`mime`) se deduce de la extensión.
+- Los respaldos ya enviados no se quitan desde la app (son respaldo contable); solo tesorería puede borrar en Storage.
+- No hay lectura automática: la lectura con IA se eliminó el 2026-10-26 (costo por imagen).
 
 ## Exportación a Excel (`exportar`)
 
@@ -113,7 +113,7 @@ Columnas idénticas a la hoja "Rendiciones" del Excel original (con sus espacios
 
 ## Reporte PDF (`reportePDF`)
 
-Carta, una por rendición: encabezado del formulario (heca · POE-GLO-FIN-003 V:01 · RENDICIÓN DE GASTOS), fondo, datos (fecha, empresa + RUT, Nº, solicitante, folio), tabla de gastos, totales (facturas, boletas/otros, transferencias, TOTAL, total del formulario, pagado, saldo), estado de pago y pagos vinculados, aprobación, firmas (solicitante y V°B° Tesorería), **una página por foto de respaldo** y numeración "Página i de n". Nombre: `Rendicion_<folio>_<Nombre_Apellido>.pdf`.
+Carta, una por rendición: encabezado del formulario (heca · POE-GLO-FIN-003 V:01 · RENDICIÓN DE GASTOS), fondo, datos (fecha, empresa + RUT, Nº, solicitante, folio), tabla de gastos, totales (facturas, boletas/otros, transferencias, TOTAL, total del formulario, pagado, saldo), estado de pago y pagos vinculados, aprobación, firmas (solicitante y V°B° Tesorería), **una página por foto de respaldo y por cada página de los respaldos PDF** (en el orden de los respaldos; si un PDF no se puede leer, una página con el aviso) y numeración "Página i de n". Nombre: `Rendicion_<folio>_<Nombre_Apellido>.pdf`.
 
 ## Funciones (roles)
 
@@ -121,3 +121,11 @@ Carta, una por rendición: encabezado del formulario (heca · POE-GLO-FIN-003 V:
 - El Administrador inicial se define por seed/SQL.
 - La función se asigna a la **persona**; la cuenta de usuario la hereda por su vínculo `personas.user_id`.
 - Personas eliminadas: se marcan (`eliminada_en`), no se borran; desaparecen de las listas y se pueden restaurar.
+
+## Cuentas y contraseñas (spec 10)
+
+- Se ingresa con correo y contraseña. **La app no envía correos.**
+- Solo el administrador crea cuentas (persona activa con correo registrado y sin cuenta) y asigna contraseñas nuevas. La contraseña temporal se muestra una sola vez: 12 caracteres sin letras o números que se confundan (`K7QM-4XPR-2HTW`).
+- Con contraseña temporal, la persona debe elegir una nueva antes de usar la app.
+- Contraseña: al menos 8 caracteres, distinta de la actual. Cambiarla por voluntad propia pide la actual.
+- "¿Olvidaste tu contraseña?" = el administrador asigna una temporal nueva. Si el único administrador la olvida: `npm run cuenta:clave` con la clave secreta en la terminal.

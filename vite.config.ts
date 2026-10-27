@@ -9,8 +9,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // Código compartido con las Edge Functions (puro, sin APIs de Deno).
-      '@shared': fileURLToPath(new URL('./supabase/functions/_shared', import.meta.url)),
     },
   },
   css: {

@@ -40,7 +40,7 @@ Marcar con `[x]` al terminar. Cada tarea deja el proyecto compilando (`npm run b
   - Hecho como **migración** (`20261026000008_datos_iniciales.sql`) para que `db push` la aplique en Cloud; se genera con `npm run db:datos -- --admin-nombre "…" --admin-correo …` (`scripts/generar-datos-iniciales.mjs`). Administrador inicial: Kirber Pineda (KPI).
   - Verificar grafía exacta (espacios finales) con una consulta.
 
-- [x] **1.8 Autenticación** _(R3.1–R3.5, R4.1)_ — probada con correo real el 2026-10-26 (ingreso como Administrador)
+- [x] **1.8 Autenticación** _(R3.1–R3.5, R4.1)_ — probada con correo real el 2026-10-26 (ingreso como Administrador). El ingreso por código se reemplazó por contraseña en la spec 10 (2026-10-27).
   - [x] `lib/supabase.ts` (cliente tipado), `stores/auth.ts` (sesión, persona vinculada, rol, `pedirCodigo`, `verificarCodigo`, `salir`, mensajes en español), `LoginView` (correo → código; el enlace del correo también sirve).
   - [x] Guard: sin sesión → `/ingresar?volver=…`; con sesión `/ingresar` → inicio. Header con nombre, función y Salir. Aviso si la cuenta no tiene persona vinculada. Eliminado el selector "Dev: rol".
   - [x] Hook verificado en Supabase real: un correo no registrado recibe "Tu correo no está habilitado…".

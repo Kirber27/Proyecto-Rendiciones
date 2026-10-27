@@ -60,6 +60,8 @@ const servicio = vi.hoisted(() => ({
   vincularCuenta: vi.fn(),
 }))
 vi.mock('@/services/personas', () => servicio)
+const cuentas = vi.hoisted(() => ({ crearCuenta: vi.fn(), nuevaClave: vi.fn() }))
+vi.mock('@/services/cuentas', () => cuentas)
 vi.mock('@/services/catalogos', () => ({
   leerCatalogos: vi.fn().mockResolvedValue({ personas: [] }),
 }))
@@ -78,6 +80,7 @@ const mensaje = (w: Awaited<ReturnType<typeof montar>>) => w.find('[role="status
 beforeEach(() => {
   setActivePinia(createPinia())
   Object.values(servicio).forEach((f) => f.mockReset())
+  Object.values(cuentas).forEach((f) => f.mockReset())
   servicio.listarPersonasPerfil.mockResolvedValue(structuredClone(base))
   servicio.listarCuentas.mockResolvedValue([
     {
@@ -105,7 +108,51 @@ describe('PerfilesView', () => {
     expect(w.text()).toContain('Personas eliminadas (1)')
     const chips = w.findAll('.chip').map((c) => c.text())
     expect(chips.slice(0, 3)).toEqual(['1', '1', '1']) // tarjetas por función
-    expect(chips.slice(3, 6)).toEqual(['Vinculada', 'Sin correo', 'Sin ingresar']) // columna Cuenta
+    expect(chips.slice(3, 5)).toEqual(['Con cuenta', 'Sin correo']) // columna Cuenta
+    expect(w.find('button[aria-label="Nueva contraseña para Kira Admin"]').exists()).toBe(true)
+    expect(w.find('button[aria-label="Crear cuenta para Sara Solicitante"]').exists()).toBe(true)
+    expect(w.find('button[aria-label^="Crear cuenta para Tomás"]').exists()).toBe(false) // sin correo
+  })
+
+  it('crear cuenta: muestra la contraseña temporal una vez, con Copiar', async () => {
+    cuentas.crearCuenta.mockResolvedValue('K7QM-4XPR-2HTW')
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    const w = await montar()
+    await w.find('button[aria-label="Crear cuenta para Sara Solicitante"]').trigger('click')
+    await flushPromises()
+    expect(cuentas.crearCuenta).toHaveBeenCalledWith('s')
+    expect(mensaje(w)).toBe('Cuenta de Sara Solicitante creada.')
+    const panel = w.find('[aria-label="Contraseña temporal"]')
+    expect(panel.text()).toContain('Sara Solicitante')
+    expect(panel.text()).toContain('sara@ejemplo.cl')
+    expect(panel.find('code').text()).toBe('K7QM-4XPR-2HTW')
+    await panel.findAll('button').find((b) => b.text() === 'Copiar')!.trigger('click')
+    await flushPromises()
+    expect(escribir).toHaveBeenCalledWith('K7QM-4XPR-2HTW')
+    expect(panel.text()).toContain('Copiada')
+    await w.find('button[aria-label="Cerrar contraseña temporal"]').trigger('click')
+    expect(w.find('[aria-label="Contraseña temporal"]').exists()).toBe(false)
+  })
+
+  it('nueva contraseña pide confirmación en línea; un error de la función se muestra', async () => {
+    cuentas.nuevaClave.mockResolvedValueOnce('ABCD-EFGH-JKMN')
+    const w = await montar()
+    await w.find('button[aria-label="Nueva contraseña para Kira Admin"]').trigger('click')
+    expect(w.text()).toContain('La actual deja de servir.')
+    expect(cuentas.nuevaClave).not.toHaveBeenCalled()
+    await w.findAll('button').find((b) => b.text() === 'Sí, nueva')!.trigger('click')
+    await flushPromises()
+    expect(cuentas.nuevaClave).toHaveBeenCalledWith('a')
+    expect(mensaje(w)).toContain('Kira Admin tiene una contraseña nueva')
+    expect(w.find('[aria-label="Contraseña temporal"] code').text()).toBe('ABCD-EFGH-JKMN')
+
+    cuentas.nuevaClave.mockRejectedValueOnce(new Error('Solo un administrador puede crear cuentas o asignar contraseñas.'))
+    await w.find('button[aria-label="Nueva contraseña para Kira Admin"]').trigger('click')
+    await w.findAll('button').find((b) => b.text() === 'Sí, nueva')!.trigger('click')
+    await flushPromises()
+    expect(mensaje(w)).toContain('Solo un administrador')
+    expect(w.find('[aria-label="Contraseña temporal"]').exists()).toBe(false) // no queda la anterior
   })
 
   it('busca por nombre o correo sin tildes', async () => {

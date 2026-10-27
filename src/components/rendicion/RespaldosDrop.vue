@@ -1,23 +1,21 @@
 <script setup lang="ts">
-// Zona para sacar o subir las fotos del formulario y las boletas (porta la .drop de vRendir).
-// Solo recibe imágenes; los PDF se descartan con un aviso. La lista de fotos la maneja quien la usa.
+// Zona para adjuntar los respaldos de la rendición: fotos o PDF del formulario y de las boletas
+// (porta la .drop de vRendir). Descarta lo demás con un aviso; la lista la maneja quien la usa.
 import { ref } from 'vue'
-import { separarImagenes } from '@/domain/recortes'
+import { revisarArchivos } from '@/domain/respaldos'
 import type { Respaldo } from '@/types/rendicion'
 import RespaldosGrid from './RespaldosGrid.vue'
 
 withDefaults(
   defineProps<{
-    fotos?: Respaldo[]
-    leyendo?: boolean
+    respaldos?: Respaldo[]
     deshabilitado?: boolean
   }>(),
-  { fotos: () => [], leyendo: false, deshabilitado: false },
+  { respaldos: () => [], deshabilitado: false },
 )
 const emit = defineEmits<{
   agregar: [archivos: File[]]
   quitar: [indice: number]
-  detener: []
 }>()
 
 const selector = ref<HTMLInputElement>()
@@ -26,11 +24,9 @@ const arrastrando = ref(false)
 const aviso = ref('')
 
 function recibir(lista: FileList | null | undefined) {
-  const { imagenes, descartados } = separarImagenes(Array.from(lista ?? []))
-  aviso.value = descartados
-    ? `${descartados === 1 ? 'Un archivo no es imagen' : `${descartados} archivos no son imágenes`} y no se agregó. Si la boleta llegó en PDF, sube un pantallazo.`
-    : ''
-  if (imagenes.length) emit('agregar', imagenes)
+  const { aceptados, aviso: texto } = revisarArchivos(Array.from(lista ?? []))
+  aviso.value = texto
+  if (aceptados.length) emit('agregar', aceptados)
 }
 
 function alElegir(e: Event) {
@@ -53,7 +49,14 @@ function alSoltar(e: DragEvent) {
     @dragleave="arrastrando = false"
     @drop.prevent="alSoltar"
   >
-    <input ref="selector" type="file" accept="image/*" multiple hidden @change="alElegir" />
+    <input
+      ref="selector"
+      type="file"
+      accept="image/*,application/pdf"
+      multiple
+      hidden
+      @change="alElegir"
+    />
     <input
       ref="camara"
       type="file"
@@ -63,25 +66,18 @@ function alSoltar(e: DragEvent) {
       @change="alElegir"
     />
 
-    <div v-if="leyendo" class="reading" role="status">
-      <span class="dot" aria-hidden="true" />
-      <b>Leyendo la rendición…</b>
-      <button type="button" class="btn btn-sm btn-outline-secondary" @click="emit('detener')">
-        Detener
-      </button>
-    </div>
-    <div v-else class="d-flex flex-wrap justify-content-center gap-2">
+    <div class="d-flex flex-wrap justify-content-center gap-2">
       <button
         type="button"
-        class="btn btn-primary btn-lg"
+        class="btn btn-outline-primary"
         :disabled="deshabilitado"
         @click="selector?.click()"
       >
-        <i class="bi bi-images" aria-hidden="true" /> Sacar o subir fotos
+        <i class="bi bi-paperclip" aria-hidden="true" /> Adjuntar fotos o PDF
       </button>
       <button
         type="button"
-        class="btn btn-outline-secondary btn-lg d-md-none"
+        class="btn btn-outline-secondary d-md-none"
         :disabled="deshabilitado"
         @click="camara?.click()"
       >
@@ -90,14 +86,11 @@ function alSoltar(e: DragEvent) {
     </div>
 
     <span class="small text-body-secondary">
-      JPG, PNG o WebP. Puedes arrastrarlas aquí. Si la boleta llegó en PDF, sube un pantallazo.
+      Foto o PDF del formulario firmado y de cada boleta o factura (PDF hasta 10 MB). Puedes
+      arrastrarlos aquí.
     </span>
     <div v-if="aviso" class="alert alert-warning py-2 mb-0 small" role="alert">{{ aviso }}</div>
 
-    <RespaldosGrid
-      v-if="fotos.length"
-      :fotos="fotos.map((f) => ({ ...f, quitable: f.quitable && !leyendo }))"
-      @quitar="emit('quitar', $event)"
-    />
+    <RespaldosGrid v-if="respaldos.length" :respaldos="respaldos" @quitar="emit('quitar', $event)" />
   </div>
 </template>

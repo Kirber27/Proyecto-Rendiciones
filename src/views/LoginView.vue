@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Ingreso con correo + código de un solo uso (OTP). Solo entran correos registrados en Perfiles
-// (lo valida el Auth Hook en Supabase). El enlace del correo también sirve.
-import { computed, ref, watch } from 'vue'
+// Ingreso con correo y contraseña (spec 10). Las cuentas y las contraseñas nuevas las entrega el
+// administrador desde Perfiles: la app no envía correos.
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 import { correoValido } from '@/domain/personas'
@@ -11,10 +11,11 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const paso = ref<'correo' | 'codigo'>('correo')
 const correo = ref('')
-const codigo = ref('')
-const enviando = ref(false)
+const clave = ref('')
+const verClave = ref(false)
+const olvido = ref(false)
+const entrando = ref(false)
 const error = ref('')
 
 const destino = computed(() => {
@@ -22,50 +23,26 @@ const destino = computed(() => {
   return typeof v === 'string' && v.startsWith('/') ? v : '/'
 })
 
-// Si la sesión llega por el enlace del correo (o en otra pestaña), seguir de inmediato.
-watch(
-  () => auth.conSesion,
-  (si) => si && router.replace(destino.value),
-)
-
-async function enviarCodigo() {
+async function entrar() {
   error.value = ''
-  if (!correo.value.trim() || !correoValido(correo.value)) {
+  if (!correo.value.trim() || !clave.value) {
+    error.value = 'Escribe tu correo y tu contraseña.'
+    return
+  }
+  if (!correoValido(correo.value)) {
     error.value = 'Escribe un correo válido.'
     return
   }
-  enviando.value = true
+  entrando.value = true
   try {
-    await auth.pedirCodigo(correo.value)
-    paso.value = 'codigo'
-    codigo.value = ''
-  } catch (e) {
-    error.value = (e as Error).message
-  } finally {
-    enviando.value = false
-  }
-}
-
-async function entrar() {
-  error.value = ''
-  if (codigo.value.replace(/\D/g, '').length < 6) {
-    error.value = 'Escribe el código que llegó a tu correo.'
-    return
-  }
-  enviando.value = true
-  try {
-    await auth.verificarCodigo(correo.value, codigo.value)
+    await auth.entrar(correo.value, clave.value)
+    // Si entró con una contraseña temporal, el router lo lleva a elegir una propia.
     await router.replace(destino.value)
   } catch (e) {
     error.value = (e as Error).message
   } finally {
-    enviando.value = false
+    entrando.value = false
   }
-}
-
-function cambiarCorreo() {
-  paso.value = 'correo'
-  error.value = ''
 }
 </script>
 
@@ -79,14 +56,10 @@ function cambiarCorreo() {
       </div>
 
       <section class="card">
-        <form
-          v-if="paso === 'correo'"
-          class="card-body d-flex flex-column gap-3"
-          @submit.prevent="enviarCodigo"
-        >
+        <form class="card-body d-flex flex-column gap-3" novalidate @submit.prevent="entrar">
           <div>
             <h1 class="h2 mb-1">Ingresar</h1>
-            <p class="lead-muted small">Te enviaremos un código a tu correo de Heca.</p>
+            <p class="lead-muted small">Con tu correo de Heca y tu contraseña.</p>
           </div>
           <div>
             <label class="label-caps" for="correo">Correo</label>
@@ -95,67 +68,59 @@ function cambiarCorreo() {
               v-model="correo"
               type="email"
               class="form-control"
-              autocomplete="email"
+              autocomplete="username"
               inputmode="email"
               placeholder="nombre@hecaglobal.com"
               required
               autofocus
             />
           </div>
-          <div v-if="error" class="alert alert-danger py-2 mb-0 small" role="alert">
-            {{ error }}
-          </div>
-          <button type="submit" class="btn btn-primary btn-lg" :disabled="enviando">
-            {{ enviando ? 'Enviando…' : 'Enviar código' }}
-          </button>
-        </form>
-
-        <form v-else class="card-body d-flex flex-column gap-3" @submit.prevent="entrar">
           <div>
-            <h1 class="h2 mb-1">Revisa tu correo</h1>
-            <p class="lead-muted small">
-              Enviamos un código a <b>{{ correo }}</b
-              >. Escríbelo aquí o toca el enlace del correo.
-            </p>
-          </div>
-          <div>
-            <label class="label-caps" for="codigo">Código</label>
-            <input
-              id="codigo"
-              v-model="codigo"
-              class="form-control form-control-lg mono text-center"
-              autocomplete="one-time-code"
-              inputmode="numeric"
-              maxlength="10"
-              placeholder="000000"
-              required
-              autofocus
-            />
+            <label class="label-caps" for="clave">Contraseña</label>
+            <div class="input-group">
+              <input
+                id="clave"
+                v-model="clave"
+                :type="verClave ? 'text' : 'password'"
+                class="form-control"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                :aria-label="verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                :aria-pressed="verClave"
+                @click="verClave = !verClave"
+              >
+                <i :class="['bi', verClave ? 'bi-eye-slash' : 'bi-eye']" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div v-if="error" class="alert alert-danger py-2 mb-0 small" role="alert">
             {{ error }}
           </div>
-          <button type="submit" class="btn btn-primary btn-lg" :disabled="enviando">
-            {{ enviando ? 'Verificando…' : 'Entrar' }}
+          <button type="submit" class="btn btn-primary btn-lg" :disabled="entrando">
+            {{ entrando ? 'Entrando…' : 'Entrar' }}
           </button>
-          <div class="d-flex justify-content-between">
-            <button type="button" class="btn btn-link btn-sm px-0" @click="cambiarCorreo">
-              Usar otro correo
-            </button>
-            <button
-              type="button"
-              class="btn btn-link btn-sm px-0"
-              :disabled="enviando"
-              @click="enviarCodigo"
-            >
-              Enviar otro código
-            </button>
+          <button
+            type="button"
+            class="btn btn-link btn-sm px-0 align-self-start"
+            :aria-expanded="olvido"
+            aria-controls="ayuda-clave"
+            @click="olvido = !olvido"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+          <div v-if="olvido" id="ayuda-clave" class="alert alert-info py-2 mb-0 small">
+            Pide al administrador que te asigne una contraseña nueva en Perfiles. Te la entrega él (no
+            llega por correo) y, al entrar con ella, eliges una propia.
           </div>
         </form>
       </section>
 
       <p class="small text-body-secondary text-center mb-0">
-        ¿No puedes entrar? Pide a tesorería que registre tu correo en Perfiles.
+        ¿Aún no tienes cuenta? Pide al administrador que la cree en Perfiles.
       </p>
     </main>
   </div>

@@ -184,7 +184,6 @@ describe('entradaReporte', () => {
         centroCostoId: null,
       },
     ],
-    dudas: [],
     respaldos: ['p-1/a/1.jpg', 'p-1/a/2.jpg'],
   }
   const pago: EstadoPagoRendicion = porRendicion.get('a')!

@@ -31,6 +31,14 @@ async function salir() {
           {{ NOMBRE_ROL[auth.rol] }}
         </AppChip>
         <ThemeToggle />
+        <RouterLink
+          to="/clave"
+          class="btn btn-sm btn-outline-secondary border-0"
+          title="Cambiar contraseña"
+          aria-label="Cambiar contraseña"
+        >
+          <i class="bi bi-key" aria-hidden="true" />
+        </RouterLink>
         <button
           type="button"
           class="btn btn-sm btn-outline-secondary border-0"

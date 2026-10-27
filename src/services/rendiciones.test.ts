@@ -18,11 +18,14 @@ const borrador = (c: Partial<BorradorRendicion> = {}): BorradorRendicion => ({
   fondo: '',
   totalFormulario: '',
   lineas: [lineaVacia({ exento: '15.000' }), lineaVacia({ exento: '5.000' })],
-  dudas: [],
   respaldos: [],
   ...c,
 })
 const foto = (id: string) => ({ id, file: new File(['x'], `${id}.jpg`, { type: 'image/jpeg' }) })
+const pdf = (id: string) => ({
+  id,
+  file: new File(['%PDF'], `${id}.pdf`, { type: 'application/pdf' }),
+})
 
 beforeEach(() => {
   sb.upload.mockReset().mockResolvedValue({ error: null })
@@ -44,7 +47,29 @@ describe('enviarRendicion', () => {
     expect(p).toMatchObject({ id: 'r-1', persona_id: 'p-1', nro: 12 })
     expect(p.respaldos).toEqual(['p-1/r-1/a.jpg', 'p-1/r-1/b.jpg'])
     expect(r).toEqual({ id: 'r-1', nro: 12, total: 20000, reenvio: false })
-    expect(progreso).toEqual(['Guardando foto 1 de 2…', 'Guardando foto 2 de 2…', 'Enviando…'])
+    expect(progreso).toEqual([
+      'Guardando respaldo 1 de 2…',
+      'Guardando respaldo 2 de 2…',
+      'Enviando…',
+    ])
+  })
+
+  it('los PDF se suben sin reducir, como .pdf y application/pdf', async () => {
+    const { reducirImagen } = await import('@/lib/imagenes')
+    vi.mocked(reducirImagen).mockClear()
+    const archivo = pdf('c')
+    await enviarRendicion(borrador(), [foto('a'), archivo], {
+      rendicionId: 'r-1',
+      subidas: new Map(),
+    })
+    expect(reducirImagen).toHaveBeenCalledTimes(1) // solo la foto
+    expect(sb.upload.mock.calls[0]![2]).toMatchObject({ contentType: 'image/jpeg' })
+    expect(sb.upload.mock.calls[1]).toEqual([
+      'p-1/r-1/c.pdf',
+      archivo.file,
+      { contentType: 'application/pdf', upsert: false },
+    ])
+    expect(sb.rpc.mock.calls[0]![1].p.respaldos).toEqual(['p-1/r-1/a.jpg', 'p-1/r-1/c.pdf'])
   })
 
   it('reintenta una vez; "ya existe" cuenta como subida', async () => {
@@ -68,7 +93,7 @@ describe('enviarRendicion', () => {
       .mockResolvedValueOnce({ error: { message: 'red' } }) // b, intento 2
     await expect(
       enviarRendicion(borrador(), [foto('a'), foto('b')], { rendicionId: 'r-1', subidas }),
-    ).rejects.toThrow('No se pudo guardar la foto 2')
+    ).rejects.toThrow('No se pudo guardar el respaldo 2')
     expect(sb.rpc).not.toHaveBeenCalled()
 
     sb.upload.mockReset().mockResolvedValue({ error: null })

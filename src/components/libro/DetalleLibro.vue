@@ -43,7 +43,9 @@ const progresoPdf = ref('')
 
 const aprobada = computed(() => props.fila.estado === 'aprobada')
 const puedeAnular = computed(() => aprobada.value && props.fila.origen === 'App')
-const fotos = computed(() => (abierta.value?.fotos ?? []).map((x) => ({ url: x.url })))
+const respaldos = computed(() =>
+  (abierta.value?.respaldos ?? []).map((x) => ({ url: x.url, tipo: x.tipo })),
+)
 const pagosTexto = computed(() =>
   props.pagos.map((p) => `${p.fecha ? fdate(p.fecha) : '—'} ${clp(p.monto)}`).join(' · '),
 )
@@ -132,7 +134,7 @@ async function descargarPdf() {
     )
     await descargarReportePdf(
       modelo,
-      a.fotos.map((f) => f.url),
+      a.respaldos,
       { onProgreso: (t) => (progresoPdf.value = t) },
     )
   } catch (e) {
@@ -260,7 +262,7 @@ async function descargarPdf() {
         v-model="abierta.borrador"
         modo="libro"
         :catalogos="cat.catalogos"
-        :fotos="fotos"
+        :respaldos="respaldos"
         :problemas="problemas"
       >
         <template #acciones>

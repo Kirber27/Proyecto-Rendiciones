@@ -48,11 +48,25 @@ describe('RendicionEditor', () => {
     expect(cabeceras('aprobar')).toEqual(expect.arrayContaining(['Cuenta', 'C.C.']))
   })
 
-  it('muestra el aviso de lectura, las dudas y el cuadre', () => {
+  it('muestra el cuadre', () => {
     const { w } = montarEditor('persona')
-    expect(w.text()).toContain('Se encontraron 1 documento(s)')
-    expect(w.text()).toContain('El RUT del proveedor no se lee bien')
     expect(w.find('.sum').text()).toContain('Cuadra')
+  })
+
+  it('respaldos: por defecto los muestra; el slot #respaldos los reemplaza', () => {
+    const base = { modelValue: borradorDemo(), modo: 'aprobar' as const, catalogos: catalogosDemo }
+    expect(mount(RendicionEditor, { props: base }).text()).not.toContain('Respaldos')
+    const conFotos = mount(RendicionEditor, {
+      props: { ...base, respaldos: [{ url: 'blob:1', tipo: 'imagen' }] },
+    })
+    expect(conFotos.text()).toContain('Respaldos (1)')
+    expect(conFotos.find('.thumbs img').exists()).toBe(true)
+    const conSlot = mount(RendicionEditor, {
+      props: base,
+      slots: { respaldos: '<div class="zona">Adjuntar</div>' },
+    })
+    expect(conSlot.text()).toContain('Respaldos (0)')
+    expect(conSlot.find('.zona').exists()).toBe(true)
   })
 
   it('el cuadre muestra la diferencia cuando no calza', () => {

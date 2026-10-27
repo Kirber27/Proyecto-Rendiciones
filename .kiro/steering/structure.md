@@ -14,12 +14,12 @@ Proyecto-Rendiciones/
 │   ├── config.toml
 │   ├── migrations/               SQL versionado: AAAAMMDDHHMMSS_nombre.sql
 │   └── functions/
-│       ├── _shared/              código puro compartido con el frontend (alias @shared): lectura.ts
-│       └── leer-rendicion/       Edge Function de lectura con IA
+│       └── cuentas/              Edge Function: crear cuenta / contraseña temporal (solo administrador)
 ├── scripts/
 │   ├── generar-datos-iniciales.mjs  CLAUDE/datos → migración de catálogos y personas
 │   ├── probar-migraciones.mjs    migraciones + RLS sobre PGlite (sin Docker)
-│   └── importar-historial.mjs    carga del historial 2026 (clave secreta, idempotente, --ensayo)
+│   ├── importar-historial.mjs    carga del historial 2026 (clave secreta, idempotente, --ensayo)
+│   └── clave-temporal.mjs        contraseña temporal para una cuenta desde la terminal (clave secreta)
 ├── public/
 ├── src/
 │   ├── main.ts
@@ -32,13 +32,13 @@ Proyecto-Rendiciones/
 │   │   └── main.scss             orden de imports
 │   ├── lib/
 │   │   ├── supabase.ts           cliente único
-│   │   ├── imagenes.ts           canvas: reducir y recortar fotos
+│   │   ├── imagenes.ts           canvas: reducir fotos antes de subirlas
 │   │   ├── descargar.ts          descargar un Blob generado (Excel, PDF)
 │   │   ├── paginado.ts           traerTodo: listas por páginas (la API corta en 1.000 filas)
 │   │   └── database.types.ts     generado, no editar a mano
 │   ├── domain/                   lógica pura, sin Vue ni Supabase, 100% testeable
-│   │   ├── formato.ts            norm, tr, raw, num, miles, clp, fdate, parseDate, dnum, semana, mes
-│   │   ├── rendicion.ts          totalLinea, sumaLineas, totalRendicion, cuadra, validar, limpiar, folio
+│   │   ├── formato.ts            norm, tr, raw, num, miles, clp, montoATexto, fdate, parseDate, dnum, semana, mes
+│   │   ├── rendicion.ts          totalLinea, sumaLineas, cuadra, borradorNuevo, tieneDatos, validar, limpiar
 │   │   ├── asignacion.ts         FIFO de pagos (porta alloc())
 │   │   ├── conciliacion.ts       propuestas banco (porta proposals())
 │   │   ├── cartola.ts            detectar columnas, construir movimientos
@@ -46,19 +46,19 @@ Proyecto-Rendiciones/
 │   │   ├── reporte.ts            contenido del reporte PDF por rendición
 │   │   ├── carpeta.ts            estado actual, grupos, línea de tiempo e índice de carpetas
 │   │   ├── personas.ts           código sugerido, alta, correos, funciones (un tesorero, ≥1 admin)
+│   │   ├── acceso.ts             reglas de contraseña (largo mínimo, repetir, distinta de la actual)
 │   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
-│   │   ├── recortes.ts           plan de recortes para la lectura IA
-│   │   ├── lectura.ts            prompt, schema zod de respuesta, normalizar a borrador
+│   │   ├── respaldos.ts          adjuntos: tipos aceptados (imagen/PDF), tamaño máximo, escala de fotos
 │   │   └── __tests__/
-│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS), pdf.ts (jsPDF)
+│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS), pdf.ts (jsPDF + pdf-lib)
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
 │   ├── composables/              useTheme, useMediaQuery, useConfirm, useSignedUrl…
 │   ├── components/
 │   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, ConfirmInline, MoneyInput
 │   │   ├── layout/               AppHeader, AppTabs, ThemeToggle
-│   │   └── rendicion/            FotoDrop, RendicionEditor, LineasTable, CuadreTotales, Timeline, RendicionCard
-│   ├── views/                    una por pantalla (LoginView, RendirView, CarpetasView, PorAprobarView,
-│   │                             LibroView, PersonasView, BancoView, PerfilesView)
+│   │   └── rendicion/            RespaldosDrop, RespaldosGrid, RendicionEditor, DatosFormulario, LineasTable, CuadreTotales, LineaTiempo
+│   ├── views/                    una por pantalla (LoginView, CambiarClaveView, RendirView, CarpetasView,
+│   │                             PorAprobarView, LibroView, PersonasView, BancoView, PerfilesView)
 │   ├── router/index.ts
 │   ├── types/                    tipos de dominio (rendicion, catalogos, roles, …)
 │   └── dev/                      solo desarrollo: datos de demo (catálogos con personas ficticias)

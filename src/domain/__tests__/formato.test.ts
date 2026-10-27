@@ -6,6 +6,7 @@ import {
   iso,
   mes,
   miles,
+  montoATexto,
   norm,
   num,
   parseDate,
@@ -65,6 +66,17 @@ describe('miles / clp', () => {
     expect(clp(195092.5)).toBe('$ 195.093')
     expect(clp(-0.4)).toBe('$ 0')
   })
+})
+
+describe('montoATexto', () => {
+  it.each([
+    [70389, '70.389'],
+    ['70.389', '70.389'],
+    [0, ''],
+    [null, ''],
+    [1234.5, '1234,5'],
+    [-500, '-500'],
+  ])('%j → %j', (v, esperado) => expect(montoATexto(v)).toBe(esperado))
 })
 
 describe('fechas', () => {

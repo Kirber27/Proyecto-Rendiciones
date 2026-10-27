@@ -154,7 +154,9 @@ function rechazar() {
 }
 
 const cuadreFila = (f: FilaBandeja) => cuadra(f.total, f.totalFormulario)
-const fotos = computed(() => (abierta.value?.fotos ?? []).map((x) => ({ url: x.url })))
+const respaldos = computed(() =>
+  (abierta.value?.respaldos ?? []).map((x) => ({ url: x.url, tipo: x.tipo })),
+)
 </script>
 
 <template>
@@ -238,7 +240,7 @@ const fotos = computed(() => (abierta.value?.fotos ?? []).map((x) => ({ url: x.u
           v-model="abierta.borrador"
           modo="aprobar"
           :catalogos="cat.catalogos"
-          :fotos="fotos"
+          :respaldos="respaldos"
           :problemas="problemas"
         >
           <template #acciones>

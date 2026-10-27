@@ -1,5 +1,6 @@
 // Totales, validación y limpieza de rendiciones
 // (porta lineTotal, rendTotal, T, blankLine, validate y clean del prototipo).
+import type { Catalogos } from '@/types/catalogos'
 import type {
   BorradorRendicion,
   ConLineas,
@@ -58,11 +59,55 @@ export function lineaVacia(base: Partial<LineaBorrador> = {}): LineaBorrador {
   }
 }
 
+/** Empresa de un formulario nuevo (como el prototipo: EMP[1]). */
+export const EMPRESA_POR_DEFECTO = 'Hecaglobal Instruments SPA'
+
+export interface ContextoBorradorNuevo {
+  catalogos: Pick<Catalogos, 'empresas'>
+  /** Persona vinculada que no es tesorería: el solicitante queda fijo en ella. */
+  personaFija: string | null
+  /** Fecha del formulario (YYYY-MM-DD). */
+  hoy: string
+}
+
+/** Formulario vacío: fecha de hoy, empresa por defecto y una línea con su C.C. */
+export function borradorNuevo({ catalogos, personaFija, hoy }: ContextoBorradorNuevo): BorradorRendicion {
+  const empresa =
+    catalogos.empresas.find((e) => e.nombre === EMPRESA_POR_DEFECTO) ?? catalogos.empresas[0]
+  return {
+    personaId: personaFija,
+    nro: '',
+    fecha: hoy,
+    empresaId: empresa?.id ?? null,
+    fondo: '',
+    totalFormulario: '',
+    lineas: [lineaVacia({ fecha: hoy, centroCostoId: empresa?.centroCostoId ?? null })],
+    respaldos: [],
+  }
+}
+
+/** Si la persona ya escribió algo (para no guardar ni "recuperar" un formulario vacío). */
+export function tieneDatos(d: BorradorRendicion): boolean {
+  if (tr(d.nro) || tr(d.fondo) || tr(d.totalFormulario)) return true
+  if (d.respaldos.length || d.lineas.length > 1) return true
+  return d.lineas.some(
+    (l) =>
+      !!(tr(l.proveedor) || tr(l.rut) || tr(l.numero) || tr(l.detalle)) ||
+      l.subcuentaId != null ||
+      totalLinea(l) !== 0,
+  )
+}
+
 export interface ContextoValidacion {
   /** Tesorería además exige subcuenta y cuenta en cada línea. */
   esTesoreria: boolean
   /** Ids de las personas activas que se pueden elegir como solicitante. */
   personasActivas: readonly string[]
+  /**
+   * Respaldos que tendrá la rendición (guardados + nuevos). Si se indica, exige al menos uno
+   * (Rendir gastos); el libro no lo pasa porque el historial no tiene respaldos.
+   */
+  respaldos?: number
 }
 
 /**
@@ -86,6 +131,9 @@ export function validarRendicion(d: BorradorRendicion, ctx: ContextoValidacion):
   })
   if (cuadra(sumaLineas(d), totalFormularioDe(d)) === false) {
     p.push('La suma de los gastos no cuadra con el total del formulario.')
+  }
+  if (ctx.respaldos === 0) {
+    p.push('Adjunta al menos un respaldo: la foto del formulario o de las boletas.')
   }
   return p
 }

@@ -4,17 +4,23 @@ import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from '@/App.vue'
 import { router } from '@/router'
-import { mensajeErrorIngreso, useAuthStore } from '@/stores/auth'
+import { mensajeErrorClave, mensajeErrorIngreso, useAuthStore } from '@/stores/auth'
 import type { Rol } from '@/types/roles'
 
 let pinia: Pinia
 const montados: { unmount(): void }[] = []
 
 /** Simula una sesión ya iniciada (sin llamar a Supabase). */
-function iniciarSesion(rol: Rol | null) {
+function iniciarSesion(rol: Rol | null, { claveTemporal = false } = {}) {
   const auth = useAuthStore()
   auth.listo = true
-  auth.session = { user: { id: 'u-1', email: 'persona@ejemplo.cl' } } as Session
+  auth.session = {
+    user: {
+      id: 'u-1',
+      email: 'persona@ejemplo.cl',
+      user_metadata: claveTemporal ? { debe_cambiar_clave: true } : {},
+    },
+  } as unknown as Session
   auth.persona = rol ? { id: 'p-1', nombre: 'Juana Pérez ', codigo: 'JPE', rol } : null
 }
 
@@ -68,6 +74,22 @@ describe('App: sesión', () => {
     expect(pestanas(w)).toEqual(['Rendir gastos', 'Mis rendiciones'])
   })
 
+  it('con contraseña temporal, cualquier ruta lleva a elegir una propia', async () => {
+    iniciarSesion('administrador', { claveTemporal: true })
+    const w = await montar('/perfiles')
+    expect(router.currentRoute.value.name).toBe('clave')
+    expect(w.text()).toContain('Elige tu contraseña')
+    expect(w.find('#clave-actual').exists()).toBe(false)
+  })
+
+  it('sin contraseña temporal, /clave es el cambio voluntario (pide la actual)', async () => {
+    const w = await montarComo('solicitante', '/clave')
+    expect(router.currentRoute.value.name).toBe('clave')
+    expect(w.text()).toContain('Cambiar contraseña')
+    expect(w.find('#clave-actual').exists()).toBe(true)
+    expect(w.find('header a[aria-label="Cambiar contraseña"]').exists()).toBe(true)
+  })
+
   it('si la sesión se cierra, vuelve al ingreso', async () => {
     await montarComo('solicitante', '/rendir')
     useAuthStore().session = null
@@ -119,17 +141,31 @@ describe('App: pestañas y permisos', () => {
   })
 })
 
-describe('mensajeErrorIngreso', () => {
-  it('traduce los errores de Supabase Auth', () => {
+describe('mensajeErrorIngreso / mensajeErrorClave', () => {
+  it('traduce los errores de ingreso sin decir si falló el correo o la contraseña', () => {
     expect(
-      mensajeErrorIngreso({
-        message: 'Tu correo no está habilitado. Pide a tesorería que te agregue.',
-      }),
-    ).toContain('no está habilitado')
-    expect(mensajeErrorIngreso({ status: 429, message: 'Email rate limit exceeded' })).toContain(
-      'demasiados códigos',
+      mensajeErrorIngreso({ code: 'invalid_credentials', message: 'Invalid login credentials' }),
+    ).toBe('Correo o contraseña incorrectos.')
+    expect(mensajeErrorIngreso({ message: 'Invalid login credentials' })).toBe(
+      'Correo o contraseña incorrectos.',
     )
-    expect(mensajeErrorIngreso({ message: 'Token has expired or is invalid' })).toContain('venció')
+    expect(mensajeErrorIngreso({ status: 429, message: 'Request rate limit reached' })).toContain(
+      'Demasiados intentos',
+    )
+    expect(mensajeErrorIngreso({ code: 'email_not_confirmed', message: 'Email not confirmed' })).toContain(
+      'aún no está activa',
+    )
     expect(mensajeErrorIngreso(null)).toContain('No se pudo completar')
+  })
+
+  it('traduce los errores al cambiar la contraseña', () => {
+    expect(mensajeErrorClave({ code: 'same_password', message: 'x' })).toBe(
+      'La contraseña nueva debe ser distinta de la actual.',
+    )
+    expect(
+      mensajeErrorClave({ message: 'Password should be at least 8 characters.' }),
+    ).toContain('al menos 8 caracteres')
+    expect(mensajeErrorClave({ status: 429 })).toContain('Demasiados intentos')
+    expect(mensajeErrorClave(null)).toContain('No se pudo cambiar')
   })
 })

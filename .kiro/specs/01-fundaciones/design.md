@@ -58,7 +58,7 @@ Archivos `supabase/migrations/20261026000001…08`:
 2. `catalogos` — centros de costo, cuentas, subcuentas (cuenta sugerida), empresas (C.C. por defecto), medios de pago.
 3. `personas_y_acceso` — personas (`nombre_norm` columna generada), índice único de tesorero, helpers `mi_persona_id/mi_rol/es_tesoreria/es_admin`, trigger de vínculo por correo, hook de correo.
 4. `rendiciones` — rendiciones, líneas, eventos, respaldos y trigger que mantiene `total`.
-5. `pagos_banco` — cartolas, movimientos, pagos (devolución ≤ 0), `pago_rendiciones`, `lecturas_ia`.
+5. `pagos_banco` — cartolas, movimientos, pagos (devolución ≤ 0), `pago_rendiciones`, `lecturas_ia` (eliminada en la 2.10).
 6. `rls` — RLS en todas las tablas y políticas (funciones envueltas en `select` para evaluarse una vez).
 7. `storage` — bucket privado `respaldos` (10 MB, solo imágenes) y políticas por carpeta `<persona_id>/…`.
 8. `datos_iniciales` — **generada** por `scripts/generar-datos-iniciales.mjs` (catálogos, 26 personas del historial sin correo, administrador inicial).

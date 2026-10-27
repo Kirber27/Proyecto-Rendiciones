@@ -34,13 +34,12 @@ La referencia visual es la maqueta `CLAUDE/app/rendiciones-heca.html`. La primer
 | `.grid` de campos | `row g-3` con `col-12 col-sm-6 col-lg-4`. |
 | `.scroll > table` | `table-responsive` + `table table-sm`, encabezados 11px mayúsculas, `td.n` mono alineado a la derecha con `tabular-nums`. |
 | `table.edit` | `LineasTable`: inputs `form-control-sm` dentro de celdas. En móvil, una tarjeta por línea. |
-| `.drop` | `FotoDrop`: zona punteada; botones "Tomar foto" (`capture="environment"`) y "Elegir fotos". |
-| `.thumbs` | miniaturas 96×120 con botón × y zoom a `AppLightbox`. |
+| `.drop` | `RespaldosDrop`: zona punteada; botones "Adjuntar fotos o PDF" y "Cámara" (`capture="environment"`, solo móvil); acepta arrastrar. |
+| `.thumbs` | `RespaldosGrid`: miniaturas 96×120 con botón × y zoom a `AppLightbox`; los PDF como ficha del mismo tamaño (ícono + nombre) que abre el archivo en otra pestaña. |
 | `.kpis` | `KpiTile` (etiqueta mayúscula + monto mono 18px). |
 | `.cards` / `.card` | `RendicionCard` en grilla `row-cols-1 row-cols-md-2 row-cols-lg-3`. |
 | `.msg.ok/warn/bad/info` | `alert` con variantes subtle. |
 | `.sum` (cuadre) | `CuadreTotales`: suma, total formulario y chip "Cuadra" / "Diferencia $ X". |
-| `.reading` + `.dot` pulsante | indicador "Leyendo fotos…" con botón Detener. |
 | `.empty` | `EmptyState`. |
 | Línea de tiempo | `Timeline` (lista vertical: chip del evento, fecha, nota). |
 
