@@ -1,0 +1,48 @@
+{
+ "db": {
+  "rules": [
+   {
+    "path": "",
+    "read": "admin",
+    "write": "admin"
+   },
+   {
+    "path": "publico",
+    "read": "interact",
+    "write": "admin"
+   },
+   {
+    "path": "envios",
+    "read": "admin",
+    "write": "admin"
+   },
+   {
+    "path": "envios/{self}",
+    "read": "interact",
+    "write": "interact"
+   },
+   {
+    "path": "estados",
+    "read": "admin",
+    "write": "admin"
+   },
+   {
+    "path": "estados/{self}",
+    "read": "interact",
+    "write": "admin"
+   }
+  ]
+ },
+ "user": {
+  "scopes": [
+   "profile"
+  ]
+ },
+ "sample": {
+  "images": true
+ },
+ "assets": {
+  "upload": "interact"
+ },
+ "downloads": true
+}

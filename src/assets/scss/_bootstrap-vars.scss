@@ -1,0 +1,134 @@
+// Mapeo de tokens → variables de Bootstrap. Se importa ANTES de bootstrap (todas sus variables son !default).
+// Las superficies usan var(--app-surface) para que cambien con el modo oscuro sin recompilar.
+
+// Colores de tema
+$primary: $accent;
+$success: $ok;
+$warning: $warn;
+$danger: $bad;
+$info: $accent;
+
+// Cuerpo
+$body-bg: $bg;
+$body-color: $ink;
+$body-secondary-color: $muted;
+$body-tertiary-bg: $bg;
+$border-color: $line;
+$link-color: $accent;
+$link-decoration: none;
+$link-hover-decoration: underline;
+
+// Variantes suaves (chips, alertas, fila seleccionada)
+$primary-bg-subtle: $accent-soft;
+$primary-text-emphasis: $accent;
+$primary-border-subtle: $accent-soft;
+$success-bg-subtle: $ok-soft;
+$success-text-emphasis: $ok;
+$success-border-subtle: $ok-soft;
+$warning-bg-subtle: $warn-soft;
+$warning-text-emphasis: $warn;
+$warning-border-subtle: $warn-soft;
+$danger-bg-subtle: $bad-soft;
+$danger-text-emphasis: $bad;
+$danger-border-subtle: $bad-soft;
+$info-bg-subtle: $accent-soft;
+$info-text-emphasis: $accent;
+$info-border-subtle: $accent-soft;
+
+// Modo oscuro (variables nativas de Bootstrap 5.3)
+$body-bg-dark: $bg-dark;
+$body-color-dark: $ink-dark;
+$body-secondary-color-dark: $muted-dark;
+$body-tertiary-bg-dark: $bg-dark;
+$body-emphasis-color-dark: $ink-dark;
+$border-color-dark: $line-dark;
+$link-color-dark: $accent-dark;
+$link-hover-color-dark: $accent-dark;
+$primary-bg-subtle-dark: $accent-soft-dark;
+$primary-text-emphasis-dark: $accent-dark;
+$primary-border-subtle-dark: $accent-soft-dark;
+$info-bg-subtle-dark: $accent-soft-dark;
+$info-text-emphasis-dark: $accent-dark;
+$info-border-subtle-dark: $accent-soft-dark;
+$success-bg-subtle-dark: $ok-soft-dark;
+$success-text-emphasis-dark: $ok-dark;
+$success-border-subtle-dark: $ok-soft-dark;
+$warning-bg-subtle-dark: $warn-soft-dark;
+$warning-text-emphasis-dark: $warn-dark;
+$warning-border-subtle-dark: $warn-soft-dark;
+$danger-bg-subtle-dark: $bad-soft-dark;
+$danger-text-emphasis-dark: $bad-dark;
+$danger-border-subtle-dark: $bad-soft-dark;
+
+// Superficies
+$card-bg: var(--app-surface);
+$input-bg: var(--app-surface);
+$table-bg: var(--app-surface);
+$dropdown-bg: var(--app-surface);
+$modal-content-bg: var(--app-surface);
+$card-cap-bg: transparent;
+
+// Tipografía (base 14px, line-height 1.45)
+$font-family-sans-serif: $font-sans;
+$font-family-monospace: $font-mono;
+$font-size-base: 0.875rem;
+$line-height-base: 1.45;
+$headings-font-weight: 600;
+$h1-font-size: 1.375rem; // 22px
+$h2-font-size: 1rem; // 16px
+$h3-font-size: 0.9375rem;
+$btn-font-weight: 500;
+
+// Forma: bordes de 1px, sin sombras
+$border-radius: $radius;
+$border-radius-sm: $radius-input;
+$border-radius-lg: $radius;
+$input-border-radius: $radius-input;
+$input-border-radius-sm: $radius-input;
+$input-border-radius-lg: $radius-input;
+$enable-shadows: false;
+$card-border-color: var(--bs-border-color);
+$card-spacer-y: 1rem;
+$card-spacer-x: 1rem;
+
+// Botones (padding de la maqueta: 9px 14px; sm 5px 10px; big 14px 22px)
+$btn-padding-y: 0.5625rem;
+$btn-padding-x: 0.875rem;
+$btn-padding-y-sm: 0.3125rem;
+$btn-padding-x-sm: 0.625rem;
+$btn-font-size-sm: 0.8125rem;
+$btn-padding-y-lg: 0.875rem;
+$btn-padding-x-lg: 1.375rem;
+$btn-font-size-lg: 0.9375rem;
+
+// Inputs (7px 8px)
+$input-padding-y: 0.4375rem;
+$input-padding-x: 0.5rem;
+
+// Tablas
+$table-cell-padding-y: 0.375rem;
+$table-cell-padding-x: 0.5rem;
+$table-cell-padding-y-sm: 0.25rem;
+$table-cell-padding-x-sm: 0.25rem;
+$table-hover-bg: var(--bs-primary-bg-subtle);
+$table-active-bg: var(--bs-primary-bg-subtle);
+
+// Pestañas (nav-pills): activa con fondo suave y texto de tinta
+$nav-link-color: var(--bs-secondary-color);
+$nav-link-hover-color: var(--bs-body-color);
+$nav-link-font-weight: 500;
+$nav-link-padding-y: 0.5rem;
+$nav-link-padding-x: 0.75rem;
+$nav-pills-link-active-bg: var(--bs-primary-bg-subtle);
+$nav-pills-link-active-color: var(--bs-body-color);
+
+// Badges
+$badge-font-size: 0.75rem;
+$badge-font-weight: 600;
+$badge-padding-y: 0.125rem;
+$badge-padding-x: 0.5rem;
+
+// Foco
+$focus-ring-width: 2px;
+$focus-ring-opacity: 1;
+$input-btn-focus-width: 2px;

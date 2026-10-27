@@ -1,0 +1,7 @@
+// Orden: tokens → variables de Bootstrap → Bootstrap → modo oscuro → componentes propios.
+// Bootstrap 5.3 aún no soporta @use, por eso se usa @import (deprecación silenciada en vite.config.ts).
+@import 'tokens';
+@import 'bootstrap-vars';
+@import 'bootstrap/scss/bootstrap';
+@import 'dark';
+@import 'components';

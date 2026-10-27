@@ -1,0 +1,43 @@
+// Tokens de diseño: fuente única de verdad (copiados del :root de CLAUDE/app/rendiciones-heca.html).
+// Se consumen en _bootstrap-vars.scss (claro) y _dark.scss (oscuro).
+
+// Claro
+$bg: #f3f5f7;
+$surface: #ffffff;
+$ink: #16202b;
+$muted: #5a6878;
+$line: #d9dfe6;
+$accent: #1f5fbf;
+$accent-ink: #ffffff;
+$accent-soft: #e6eefa;
+$ok: #1e7a4c;
+$ok-soft: #e3f3ea;
+$warn: #9a6700;
+$warn-soft: #fbf0d6;
+$bad: #b42318;
+$bad-soft: #fce7e5;
+
+// Oscuro
+$bg-dark: #0f151c;
+$surface-dark: #18212b;
+$ink-dark: #e6ecf2;
+$muted-dark: #9aa8b7;
+$line-dark: #2c3946;
+$accent-dark: #6ea3f2;
+$accent-ink-dark: #0b1622;
+$accent-soft-dark: #1c2e47;
+$ok-dark: #5cc38e;
+$ok-soft-dark: #173226;
+$warn-dark: #e3b04b;
+$warn-soft-dark: #3a2f14;
+$bad-dark: #f2877c;
+$bad-soft-dark: #3d1d1a;
+
+// Tipografía
+$font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+$font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+// Forma
+$radius: 8px;
+$radius-input: 6px;
+$max-width: 1160px;

@@ -1,0 +1,352 @@
+// Piezas propias de la maqueta que Bootstrap no trae. Se importa después de bootstrap.
+
+// Contenedor de trabajo: 1160px, gutter 16px respetando el notch
+.app-wrap {
+  max-width: $max-width;
+  margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+// Encabezado
+.app-header {
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+
+  b {
+    font-size: 17px;
+    letter-spacing: 0.01em;
+  }
+  small {
+    font-family: $font-mono;
+    font-size: 11px;
+    color: var(--bs-secondary-color);
+    letter-spacing: 0.04em;
+  }
+}
+.nav-pills .badge {
+  background: var(--bs-primary);
+  color: var(--app-accent-ink);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+
+// Texto
+h1,
+h2 {
+  text-wrap: balance;
+}
+.lead-muted {
+  color: var(--bs-secondary-color);
+  max-width: 68ch;
+  margin: 0;
+}
+.label-caps {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  margin-bottom: 4px;
+}
+.mono {
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+}
+.pos {
+  color: var(--bs-warning);
+}
+.neg {
+  color: var(--bs-danger);
+}
+input.num,
+.form-control.num {
+  font-family: $font-mono;
+  text-align: right;
+}
+
+// Foco visible en todo lo interactivo
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+tr:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+// Tarjetas: borde de 1px, sin sombra
+.card {
+  box-shadow: none;
+}
+
+// Tablas: encabezado 11px mayúsculas, montos mono a la derecha
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: $radius;
+  background: var(--app-surface);
+
+  .table {
+    margin-bottom: 0;
+  }
+  tr:last-child td {
+    border-bottom: 0;
+  }
+}
+.table {
+  font-size: 13px;
+
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 8px;
+  }
+  td {
+    vertical-align: top;
+  }
+  td.mono {
+    white-space: nowrap;
+  }
+  td.n,
+  th.n {
+    text-align: right;
+    font-family: $font-mono;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  tr.fila-sel > td {
+    background: var(--bs-primary-bg-subtle);
+  }
+  tr.tot > td {
+    font-weight: 600;
+  }
+}
+.table-click tbody tr {
+  cursor: pointer;
+}
+
+// Chips de estado
+.chip {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.45;
+
+  &.chip-ok {
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-success-text-emphasis);
+  }
+  &.chip-warn {
+    background: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+  }
+  &.chip-bad {
+    background: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+  }
+  &.chip-info {
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+  }
+  &.chip-muted {
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+  }
+}
+
+// KPIs
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.kpi {
+  background: var(--app-surface);
+  border: 1px solid var(--bs-border-color);
+  border-radius: $radius;
+  padding: 12px;
+
+  small {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bs-secondary-color);
+  }
+  b {
+    font-family: $font-mono;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+.amt {
+  font-family: $font-mono;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+// Cuadre de totales
+.sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  align-items: center;
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+
+  b,
+  .chip {
+    font-family: $font-sans;
+  }
+}
+
+// Pasos de Rendir gastos
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+
+  > div {
+    border-top: 2px solid var(--bs-primary);
+    padding-top: 8px;
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+  }
+  b {
+    display: block;
+    color: var(--bs-body-color);
+    font-size: 14px;
+  }
+}
+
+// Zona para subir fotos
+.drop {
+  border: 2px dashed var(--bs-border-color);
+  border-radius: $radius;
+  background: var(--app-surface);
+  padding: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+
+  &.drop-activa {
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+  }
+}
+
+// Miniaturas de respaldos
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  figure {
+    margin: 0;
+    position: relative;
+    width: 96px;
+    height: 120px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: $radius-input;
+    overflow: hidden;
+    background: var(--bs-body-bg);
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: zoom-in;
+  }
+  .thumb-pdf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    padding: 8px 6px;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    font-size: 11px;
+    line-height: 1.25;
+    text-align: center;
+    word-break: break-word;
+
+    i {
+      font-size: 32px;
+      color: var(--bs-danger);
+    }
+    span {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    &:hover span {
+      text-decoration: underline;
+    }
+  }
+  .thumb-quitar {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    border: 0;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    background: var(--bs-body-color);
+    color: var(--app-surface);
+    cursor: pointer;
+    line-height: 1;
+  }
+}
+
+// Visor de imagen
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1080;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+}
+
+// Estado vacío
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

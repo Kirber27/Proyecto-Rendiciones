@@ -1,0 +1,75 @@
+import type { Session } from '@supabase/supabase-js'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { catalogosDemo } from '@/dev/catalogosDemo'
+
+vi.mock('@/services/catalogos', () => ({ leerCatalogos: vi.fn(async () => catalogosDemo) }))
+vi.mock('@/services/aprobacion', () => ({
+  abrirRendicion: vi.fn(),
+  urlsFirmadas: vi.fn(async () => new Map()),
+}))
+const enviarRendicion = vi.hoisted(() => vi.fn())
+vi.mock('@/services/rendiciones', () => ({ enviarRendicion }))
+
+const { default: RendirView } = await import('./RendirView.vue')
+const { useAuthStore } = await import('@/stores/auth')
+const { useRendirStore } = await import('@/stores/rendir')
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+  localStorage.clear()
+  enviarRendicion.mockReset()
+  const auth = useAuthStore()
+  auth.listo = true
+  auth.session = { user: { id: 'u-1', email: 'x@ejemplo.cl' } } as Session
+  auth.persona = { id: 'p-1', nombre: 'Juana Pérez ', codigo: 'JPE', rol: 'solicitante' }
+})
+
+async function montar() {
+  const w = mount(RendirView)
+  await flushPromises()
+  return w
+}
+const boton = (w: Awaited<ReturnType<typeof montar>>, texto: string) =>
+  w.findAll('button').find((b) => b.text().includes(texto))!
+
+describe('RendirView', () => {
+  it('abre directo el formulario, con la zona para adjuntar respaldos', async () => {
+    const w = await montar()
+    expect(w.text()).toContain('1. Completa el formulario')
+    expect(w.find('select').attributes('disabled')).toBeDefined() // solicitante fijo
+    expect(w.text()).toContain('Respaldos (0)')
+    expect(boton(w, 'Adjuntar fotos o PDF').exists()).toBe(true)
+    expect(w.text()).not.toMatch(/Leyendo|Leer con IA|Volver a leer/)
+  })
+
+  it('Enviar valida y muestra los problemas sin llamar al envío', async () => {
+    const w = await montar()
+    await boton(w, 'Enviar rendición').trigger('click')
+    expect(w.find('[role="alert"]').text()).toContain('Falta el Nº de rendición.')
+    expect(w.text()).toContain('Línea 1: falta el monto.')
+    expect(w.text()).toContain('Adjunta al menos un respaldo')
+    expect(enviarRendicion).not.toHaveBeenCalled()
+  })
+
+  it('con un respaldo adjunto ya no lo pide', async () => {
+    const w = await montar()
+    useRendirStore().agregarArchivos([new File(['%PDF'], 'b.pdf', { type: 'application/pdf' })])
+    await flushPromises()
+    expect(w.find('a.thumb-pdf').text()).toBe('b.pdf')
+    await boton(w, 'Enviar rendición').trigger('click')
+    expect(w.find('[role="alert"]').text()).not.toContain('Adjunta al menos un respaldo')
+  })
+
+  it('Descartar pide confirmación y deja el formulario vacío', async () => {
+    const w = await montar()
+    const rendir = useRendirStore()
+    rendir.borrador!.nro = '12'
+    await boton(w, 'Descartar').trigger('click')
+    expect(w.text()).toContain('¿Descartar esta rendición?')
+    await boton(w, 'Sí, descartar').trigger('click')
+    expect(rendir.borrador!.nro).toBe('')
+    expect(w.text()).not.toContain('¿Descartar esta rendición?')
+  })
+})
