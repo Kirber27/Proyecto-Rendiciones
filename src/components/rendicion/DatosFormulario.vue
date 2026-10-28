@@ -39,10 +39,11 @@ const id = useId()
           <label class="label-caps" :for="`${id}-nro`">Nº rendición</label>
           <input
             :id="`${id}-nro`"
-            v-model="d.nro"
-            class="form-control mono"
-            inputmode="numeric"
-            autocomplete="off"
+            :value="d.nro"
+            class="form-control mono bg-body-tertiary"
+            readonly
+            :placeholder="d.personaId ? '…' : 'Elige el solicitante'"
+            title="Correlativo de la persona: se asigna solo"
           />
         </div>
         <div class="col-6 col-lg-4">

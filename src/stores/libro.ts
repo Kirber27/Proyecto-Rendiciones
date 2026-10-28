@@ -76,18 +76,38 @@ export const useLibroStore = defineStore('libro', () => {
     )
     if (!sel.length)
       return soloNuevas ? 'No hay rendiciones nuevas para exportar.' : 'El libro está vacío.'
-    const lineas = await leerLineas(sel.map((f) => f.id))
-    const datos = filasExcel(
-      rendicionesParaExcel(sel, lineas, cat.catalogos),
-      pagosParaExcel(pagos.value, cat.catalogos.mediosPago),
-    )
-    await descargarExcel(datos, nombreArchivoExcel(hoy()))
+    const datos = await descargar(sel, nombreArchivoExcel(hoy()))
     if (soloNuevas) {
       await marcarExportadas(sel.map((f) => f.id))
       const marcadas = new Set(sel.map((f) => f.id))
       filas.value = filas.value.map((f) => (marcadas.has(f.id) ? { ...f, exportada: true } : f))
     }
     return `Excel con ${sel.length} rendición(es) y ${datos.length} línea(s).${soloNuevas ? ' Quedaron marcadas como exportadas.' : ''}`
+  }
+
+  /** Arma la hoja "Rendiciones" de esas rendiciones y la descarga. Devuelve las filas (una por línea). */
+  async function descargar(sel: readonly FilaLibro[], nombre: string) {
+    const lineas = await leerLineas(sel.map((f) => f.id))
+    const datos = filasExcel(
+      rendicionesParaExcel(sel, lineas, cat.catalogos),
+      pagosParaExcel(pagos.value, cat.catalogos.mediosPago),
+    )
+    await descargarExcel(datos, nombre)
+    return datos
+  }
+
+  /**
+   * Excel de lo que muestra la tabla con la búsqueda y el filtro (spec 11, R8): solo las aprobadas,
+   * mismo formato, y no las marca como exportadas.
+   */
+  async function exportarBusqueda(visibles: readonly FilaLibro[]): Promise<string> {
+    const sel = seleccionarParaExportar(
+      visibles.filter((f) => f.estado === 'aprobada'),
+      false,
+    )
+    if (!sel.length) return 'La búsqueda no tiene rendiciones aprobadas para exportar.'
+    const datos = await descargar(sel, nombreArchivoExcel(hoy(), 'busqueda'))
+    return `Excel con ${sel.length} rendición(es) y ${datos.length} línea(s) de la búsqueda.`
   }
 
   function limpiar() {
@@ -114,6 +134,7 @@ export const useLibroStore = defineStore('libro', () => {
     cargar,
     pagosDe,
     exportarExcel,
+    exportarBusqueda,
     limpiar,
   }
 })

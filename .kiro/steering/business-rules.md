@@ -13,8 +13,9 @@ Portadas del prototipo (`CLAUDE/app/rendiciones-heca.html`). Entre paréntesis, 
 
 - `num()` acepta números o texto chileno: `"70.389"` → 70389; `"1.234,50"` → 1234.5; vacío → 0.
 - `clp(n)` → `"$ 70.389"` (redondeado, `toLocaleString("es-CL")`, signo `-` delante si es negativo).
-- **Total de línea** = neto + iva + exento + otros.
+- **Total de línea** = neto + iva + exento + otros. `otros` es el **impuesto especial** (columna "Imp. especial", opcional, después de Exento / monto). En el Excel y el PDF va sumado a "Monto Exento", como en el prototipo.
 - En **Boleta, Boleta de honorarios y Transferencia** el monto va en `exento`; neto e iva = 0. En **Factura** neto e iva por separado y exento solo si la factura lo muestra.
+- **IVA calculado** (spec 11): en Factura, `iva = round(neto × 0,19)` (`ivaDe`, `TASA_IVA`); no se escribe (campo de solo lectura). Se recalcula al cambiar el neto o el tipo; en los otros tipos queda en 0. Una línea guardada conserva su IVA mientras no se toquen su neto ni su tipo (el historial puede traer otro redondeo). El servidor no lo recalcula.
 - **Cuadre**: si hay total del formulario, la suma de líneas debe coincidir con tolerancia de ±1 peso.
 
 ## Fechas (`parseDate`, `fdate`, `semana`)
@@ -25,6 +26,7 @@ Portadas del prototipo (`CLAUDE/app/rendiciones-heca.html`). Entre paréntesis, 
 
 ## Folio de rendición (`rid`, `codeOf`)
 
+- **Nº de rendición = correlativo por persona** (spec 11): mayor Nº de la persona (en cualquier estado, incluido el historial) + 1. No se escribe: el formulario lo muestra al elegir el solicitante (`siguiente_nro`) y el servidor lo asigna al enviar una nueva. Se conserva en reenvíos, aprobación y edición; si tesorería cambia la persona, toma el siguiente de la nueva persona.
 - Folio = **código de la persona + "-" + Nº del formulario con 3 dígitos**: `DHE-042`.
 - Si el folio ya existe, se agrega un sufijo corto aleatorio (`DHE-042-x7`). Se asigna **al aprobar**.
 - Código de persona: el de `personas.codigo`; si no, el de `CLAUDE/datos/codes.json`; si no, primeras 3 letras del nombre normalizado.
@@ -33,12 +35,15 @@ Portadas del prototipo (`CLAUDE/app/rendiciones-heca.html`). Entre paréntesis, 
 ## Validación de envío (`validate`)
 
 - Solicitante elegido de la lista de personas activas.
-- Nº de rendición y fecha obligatorios.
+- Fecha obligatoria (el Nº no se valida: lo asigna el servidor).
 - Cada línea con monto > 0.
+- En Rendir gastos, cada línea con **proveedor elegido de la lista** (el RUT sale del proveedor, no se escribe); lo exige también `enviar_rendicion` (proveedor activo). Por aprobar y el libro no lo exigen (el historial no trae proveedor).
 - Tesorería (al aprobar o editar en el libro) además exige **subcuenta y cuenta** en cada línea.
+- **Nº de documento único por proveedor** (spec 11): no se repite la combinación RUT del proveedor + tipo + Nº (sin importar mayúsculas ni espacios) en rendiciones no eliminadas ni rechazadas, ni dos veces en el mismo formulario. Mientras se escribe, la app consulta `documento_repetido` y deja el campo en rojo con el aviso; al guardar lo revisa la base. Las líneas sin Nº o sin RUT no se comparan, y lo que una rendición ya tenía guardado no se vuelve a revisar (el historial puede traer repetidos).
 - Si hay total del formulario, debe cuadrar (±1).
 - **Al menos un respaldo** (foto o PDF) al enviar desde Rendir gastos; en un reenvío cuentan los ya guardados. Lo exige también la RPC `enviar_rendicion`. Al aprobar o editar en el libro no se exige (el historial no tiene respaldos).
 - Al elegir subcuenta, la cuenta se sugiere con `subcuenta_a_cuenta` (editable por tesorería).
+- **Nueva subcuenta** (spec 11): tesorería la agrega desde el selector de la línea ("+ Nueva subcuenta…": nombre + cuenta sugerida opcional, RPC `crear_subcuenta`). No se permite otra con el mismo nombre normalizado (`norm`); si existe, se ofrece usarla. Queda al final de la lista para todos.
 - El C.C. por defecto de cada línea es el de la empresa elegida.
 - Formulario nuevo: fecha de hoy, empresa *Hecaglobal Instruments SPA*, una línea vacía. Si el usuario está vinculado a una persona y no es tesorería, el solicitante queda **fijo** en su persona.
 
@@ -92,6 +97,13 @@ Para cada **cargo** de cartola sin asignar ni ignorar, en orden de fecha:
 - Columnas a mapear: Fecha, Descripción, Cargo, Abono, Monto (si viene en una sola columna: negativo = cargo), Nº operación. Se adivinan por regex y se pueden corregir.
 - Se descartan filas sin fecha o sin monto. Glosa recortada a 140 caracteres.
 
+## Proveedores y RUT (spec 11)
+
+- Registro de proveedores (nombre + RUT). Cualquier usuario agrega; tesorería edita, elimina/restaura e importa Excel.
+- RUT: se acepta escrito de cualquier forma, se valida el dígito verificador (módulo 11) y se guarda normalizado `12345678-5`; se muestra `12.345.678-5` (`src/domain/rut.ts`). Único: un RUT = un proveedor.
+- Las líneas guardan nombre y RUT tal como se rindieron, más el vínculo `proveedor_id`; editar un proveedor no cambia lo ya rendido. Al volver a guardar una línea con `proveedor_id` (reenvío, aprobación, edición), el servidor copia el nombre y RUT actuales del registro.
+- En el formulario, el proveedor se elige con un buscador (nombre o RUT); "¿No está? Agrégalo" lo crea en un modal sin salir del formulario. Las líneas antiguas muestran su texto con "(sin registrar)".
+
 ## Respaldos adjuntos
 
 - Se aceptan **imágenes** (JPG, PNG, WebP; HEIC si el navegador lo convierte) y **PDF**. Otros archivos se descartan con aviso.
@@ -110,6 +122,8 @@ Columnas idénticas a la hoja "Rendiciones" del Excel original (con sus espacios
 - En no-facturas todo el monto va a "Monto Exento".
 - El pago (banco, fecha del último pago, suma de pagos vinculados) va **solo en la última línea** de cada rendición. "Último pago" = el de fecha más reciente (el prototipo tomaba el último en orden de carga).
 - Fechas con formato `dd-mm-yyyy`, montos `#,##0`. Opción "solo nuevas" marca `exportada = true`.
+- **Excel (búsqueda)** (spec 11): exporta las aprobadas que muestra la tabla con la búsqueda y el filtro actuales (todas las páginas), mismo formato, sin marcarlas como exportadas. Archivo `Rendiciones_busqueda_<YYYY-MM-DD>.xlsx`. Se habilita solo con búsqueda o filtro y alguna aprobada en la tabla.
+- Las tarjetas del libro (Rendiciones, Total rendido, Pendiente de pago, Sin exportar) se calculan sobre lo que muestra la tabla cuando hay búsqueda o filtro; sin ellos, sobre todo el libro.
 
 ## Reporte PDF (`reportePDF`)
 

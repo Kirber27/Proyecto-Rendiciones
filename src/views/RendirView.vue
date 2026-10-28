@@ -37,6 +37,7 @@ async function enviar() {
   if (!rendir.borrador) return
   problemas.value = validarRendicion(rendir.borrador, {
     esTesoreria: false, // la persona no elige cuenta ni C.C.: lo hace tesorería al aprobar
+    exigirProveedor: true,
     personasActivas: cat.personasActivas,
     respaldos: respaldos.value.length,
   })

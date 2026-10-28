@@ -2,8 +2,8 @@
 // Se cargan una vez por sesión; `recargar()` después de editar personas en Perfiles.
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { leerCatalogos } from '@/services/catalogos'
-import type { Catalogos } from '@/types/catalogos'
+import { crearSubcuenta, leerCatalogos } from '@/services/catalogos'
+import type { Catalogos, Subcuenta } from '@/types/catalogos'
 
 const VACIOS: Catalogos = {
   personas: [],
@@ -45,6 +45,13 @@ export const useCatalogosStore = defineStore('catalogos', () => {
     return cargar()
   }
 
+  /** Tesorería agrega una subcuenta: queda al final de la lista, disponible de inmediato. */
+  async function agregarSubcuenta(nombre: string, cuentaId: number | null): Promise<Subcuenta> {
+    const s = await crearSubcuenta(nombre, cuentaId)
+    catalogos.value = { ...catalogos.value, subcuentas: [...catalogos.value.subcuentas, s] }
+    return s
+  }
+
   /** Al cerrar sesión: olvidar todo. */
   function limpiar() {
     catalogos.value = VACIOS
@@ -54,5 +61,15 @@ export const useCatalogosStore = defineStore('catalogos', () => {
 
   const personasActivas = computed(() => catalogos.value.personas.map((p) => p.id))
 
-  return { catalogos, cargando, listo, error, cargar, recargar, limpiar, personasActivas }
+  return {
+    catalogos,
+    cargando,
+    listo,
+    error,
+    cargar,
+    recargar,
+    agregarSubcuenta,
+    limpiar,
+    personasActivas,
+  }
 })

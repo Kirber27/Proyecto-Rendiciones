@@ -1,6 +1,7 @@
 // Banco (spec 07): lectura del archivo de cartola, cartolas guardadas y RPC de la migración 15.
 import type { Json } from '@/lib/database.types'
 import { traerTodo } from '@/lib/paginado'
+import { leerFilasHoja } from './excel'
 import { supabase } from '@/lib/supabase'
 import type {
   AsignacionCargo,
@@ -16,18 +17,8 @@ const lanzar = (error: { message: string } | null) => {
 export const ERROR_LECTURA =
   'No se pudo leer el archivo. Descárgalo del banco en formato Excel o CSV.'
 
-/** Primera hoja del archivo (.xlsx, .xls o .csv) como filas de celdas (SheetJS, carga diferida). */
-export async function leerFilasArchivo(archivo: File): Promise<unknown[][]> {
-  try {
-    const XLSX = await import('xlsx')
-    const wb = XLSX.read(await archivo.arrayBuffer(), { type: 'array', cellDates: true })
-    const hoja = wb.Sheets[wb.SheetNames[0]!]
-    if (!hoja) throw new Error('sin hojas')
-    return XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, raw: true, defval: '' })
-  } catch {
-    throw new Error(ERROR_LECTURA)
-  }
-}
+/** Primera hoja de la cartola (.xlsx, .xls o .csv) como filas de celdas. */
+export const leerFilasArchivo = (archivo: File) => leerFilasHoja(archivo, ERROR_LECTURA)
 
 export async function leerCartolas(): Promise<{
   cartolas: CartolaGuardada[]

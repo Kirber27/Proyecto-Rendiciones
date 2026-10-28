@@ -1,7 +1,7 @@
 // Lectura de catálogos y personas activas desde Supabase (RLS: cualquier usuario con sesión).
 import type { Tables } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
-import type { Catalogos } from '@/types/catalogos'
+import type { Catalogos, Subcuenta } from '@/types/catalogos'
 
 export interface FilasCatalogos {
   personas: Pick<Tables<'personas'>, 'id' | 'nombre' | 'codigo'>[]
@@ -64,4 +64,14 @@ export async function leerCatalogos(): Promise<Catalogos> {
     centrosCosto: datos(centrosCosto, 'centros de costo'),
     mediosPago: datos(mediosPago, 'medios de pago'),
   })
+}
+
+/** Tesorería agrega una subcuenta (RPC crear_subcuenta: revisa permisos y duplicados). */
+export async function crearSubcuenta(nombre: string, cuentaId: number | null): Promise<Subcuenta> {
+  const { data, error } = await supabase.rpc('crear_subcuenta', {
+    p_nombre: nombre,
+    ...(cuentaId != null ? { p_cuenta: cuentaId } : {}),
+  })
+  if (error) throw new Error(error.message)
+  return { id: data!.id, nombre: data!.nombre, cuentaSugeridaId: data!.cuenta_sugerida_id }
 }

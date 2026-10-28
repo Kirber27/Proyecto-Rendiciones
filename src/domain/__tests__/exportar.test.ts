@@ -151,6 +151,9 @@ describe('selección y nombre', () => {
   })
   it('nombre del archivo', () => {
     expect(nombreArchivoExcel('2026-10-21')).toBe('Rendiciones_2026-10-21.xlsx')
+    expect(nombreArchivoExcel('2026-10-21', 'busqueda')).toBe(
+      'Rendiciones_busqueda_2026-10-21.xlsx',
+    )
   })
 })
 

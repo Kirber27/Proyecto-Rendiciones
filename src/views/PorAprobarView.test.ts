@@ -19,6 +19,8 @@ vi.mock('@/services/aprobacion', async (original) => ({
   ...srv,
 }))
 vi.mock('@/services/catalogos', () => ({ leerCatalogos: vi.fn(async () => catalogosDemo) }))
+vi.mock('@/services/rendiciones', () => ({ siguienteNro: vi.fn(async () => 50) }))
+vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 
 const { default: PorAprobarView } = await import('./PorAprobarView.vue')
 const { aBorradorDesdeBase, folioPropuesto, marcaBandeja } = await import('@/services/aprobacion')
@@ -111,6 +113,7 @@ describe('servicio de aprobación', () => {
           orden: 2,
           fecha: null,
           tipo: 'Factura',
+          proveedor_id: null,
           proveedor: 'B',
           rut: '',
           numero: '',
@@ -127,6 +130,7 @@ describe('servicio de aprobación', () => {
           orden: 1,
           fecha: '2026-10-14',
           tipo: 'Boleta',
+          proveedor_id: 'pv-1',
           proveedor: 'A',
           rut: '',
           numero: '9',
@@ -149,6 +153,7 @@ describe('servicio de aprobación', () => {
       respaldos: ['p/r/a.jpg'],
     })
     expect(b.lineas.map((l) => l.proveedor)).toEqual(['A', 'B'])
+    expect(b.lineas.map((l) => l.proveedorId)).toEqual(['pv-1', null])
     expect(b.lineas[0]).toMatchObject({ exento: '70.389', neto: '', subcuentaId: 40 })
     expect(b.lineas[1]).toMatchObject({ fecha: '', neto: '1.000', iva: '190' })
   })

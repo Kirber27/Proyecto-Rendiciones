@@ -5,10 +5,54 @@ import type {
   BorradorRendicion,
   ConLineas,
   LineaBorrador,
+  Monto,
   MontosLinea,
   RendicionPayload,
 } from '@/types/rendicion'
-import { num, tr } from './formato'
+import { montoATexto, num, tr } from './formato'
+import { normalizarRut } from './rut'
+
+/**
+ * Clave del documento de una línea: RUT del proveedor + tipo + Nº (sin importar mayúsculas ni
+ * espacios), igual que `_clave_documento` en la base. Null si no tiene RUT válido o Nº.
+ */
+export function claveDocumento(l: Pick<LineaBorrador, 'rut' | 'tipo' | 'numero'>): string | null {
+  const rut = normalizarRut(l.rut)
+  const numero = tr(l.numero).toUpperCase()
+  return rut && numero ? `${rut}|${l.tipo}|${numero}` : null
+}
+
+/** Líneas que repiten el documento de una línea anterior del mismo formulario: índice → índice anterior. */
+export function repetidosEnFormulario(
+  lineas: readonly Pick<LineaBorrador, 'rut' | 'tipo' | 'numero'>[],
+): Map<number, number> {
+  const primera = new Map<string, number>()
+  const repetidos = new Map<number, number>()
+  lineas.forEach((l, i) => {
+    const k = claveDocumento(l)
+    if (!k) return
+    const j = primera.get(k)
+    if (j === undefined) primera.set(k, i)
+    else repetidos.set(i, j)
+  })
+  return repetidos
+}
+
+/** Tasa del IVA en Chile. */
+export const TASA_IVA = 0.19
+
+/** IVA de un neto: neto × 19 %, redondeado al peso. */
+export function ivaDe(neto: Monto): number {
+  return Math.round(num(neto) * TASA_IVA)
+}
+
+/**
+ * IVA de una línea, como texto para el formulario: en Factura se calcula del neto; en Boleta,
+ * Boleta de honorarios y Transferencia es 0 (vacío), porque todo el monto va en exento.
+ */
+export function ivaLinea(l: Pick<LineaBorrador, 'tipo' | 'neto'>): string {
+  return l.tipo === 'Factura' ? montoATexto(ivaDe(l.neto)) : ''
+}
 
 /** Total de una línea: neto + iva + exento + otros. */
 export function totalLinea(l: MontosLinea): number {
@@ -44,6 +88,7 @@ export function lineaVacia(base: Partial<LineaBorrador> = {}): LineaBorrador {
   return {
     fecha: '',
     tipo: 'Boleta',
+    proveedorId: null,
     proveedor: '',
     rut: '',
     numero: '',
@@ -86,13 +131,17 @@ export function borradorNuevo({ catalogos, personaFija, hoy }: ContextoBorradorN
   }
 }
 
-/** Si la persona ya escribió algo (para no guardar ni "recuperar" un formulario vacío). */
+/**
+ * Si la persona ya escribió algo (para no guardar ni "recuperar" un formulario vacío).
+ * El Nº no cuenta: se llena solo al elegir el solicitante.
+ */
 export function tieneDatos(d: BorradorRendicion): boolean {
-  if (tr(d.nro) || tr(d.fondo) || tr(d.totalFormulario)) return true
+  if (tr(d.fondo) || tr(d.totalFormulario)) return true
   if (d.respaldos.length || d.lineas.length > 1) return true
   return d.lineas.some(
     (l) =>
       !!(tr(l.proveedor) || tr(l.rut) || tr(l.numero) || tr(l.detalle)) ||
+      l.proveedorId != null ||
       l.subcuentaId != null ||
       totalLinea(l) !== 0,
   )
@@ -101,6 +150,11 @@ export function tieneDatos(d: BorradorRendicion): boolean {
 export interface ContextoValidacion {
   /** Tesorería además exige subcuenta y cuenta en cada línea. */
   esTesoreria: boolean
+  /**
+   * Cada línea debe tener un proveedor de la lista (Rendir gastos). Por aprobar y el libro no lo
+   * exigen: el historial no trae proveedor.
+   */
+  exigirProveedor?: boolean
   /** Ids de las personas activas que se pueden elegir como solicitante. */
   personasActivas: readonly string[]
   /**
@@ -112,19 +166,24 @@ export interface ContextoValidacion {
 
 /**
  * Problemas que impiden enviar, aprobar o guardar (todos juntos, en el orden del formulario).
- * Lista vacía = se puede guardar.
+ * Lista vacía = se puede guardar. El Nº no se valida: es correlativo y lo asigna el servidor.
  */
 export function validarRendicion(d: BorradorRendicion, ctx: ContextoValidacion): string[] {
   const p: string[] = []
   if (!d.personaId || !ctx.personasActivas.includes(d.personaId)) {
     p.push('Elige el solicitante de la lista.')
   }
-  const nro = tr(d.nro)
-  if (!nro) p.push('Falta el Nº de rendición.')
-  else if (!/^\d+$/.test(nro) || Number(nro) <= 0) p.push('El Nº de rendición debe ser un número.')
   if (!d.fecha) p.push('Falta la fecha.')
   if (!d.lineas.length) p.push('Agrega al menos un gasto.')
+  const repetidos = repetidosEnFormulario(d.lineas)
   d.lineas.forEach((l, i) => {
+    if (ctx.exigirProveedor && !l.proveedorId) p.push(`Línea ${i + 1}: elige el proveedor.`)
+    const anterior = repetidos.get(i)
+    if (anterior !== undefined) {
+      p.push(`Línea ${i + 1}: repite el Nº de documento de la línea ${anterior + 1}.`)
+    } else if (l.numeroRepetido) {
+      p.push(`Línea ${i + 1}: este Nº de documento ya está cargado para este proveedor.`)
+    }
     if (totalLinea(l) === 0) p.push(`Línea ${i + 1}: falta el monto.`)
     if (ctx.esTesoreria && l.subcuentaId == null) p.push(`Línea ${i + 1}: elige la subcuenta.`)
     if (ctx.esTesoreria && l.cuentaId == null) p.push(`Línea ${i + 1}: elige la cuenta.`)
@@ -156,6 +215,7 @@ export function limpiarRendicion(d: BorradorRendicion): RendicionPayload {
       orden: i + 1,
       fecha: l.fecha || d.fecha,
       tipo: l.tipo,
+      proveedor_id: l.proveedorId,
       proveedor: tr(l.proveedor),
       rut: tr(l.rut),
       numero: tr(l.numero),

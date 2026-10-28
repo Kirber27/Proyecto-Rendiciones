@@ -7,6 +7,7 @@ import { LARGO_MINIMO_CLAVE } from '@/domain/acceso'
 import { tr } from '@/domain/formato'
 import { supabase } from '@/lib/supabase'
 import { useCatalogosStore } from './catalogos'
+import { useProveedoresStore } from './proveedores'
 import { TESORERIA, type Rol } from '@/types/roles'
 
 export interface PersonaSesion {
@@ -136,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = null
     persona.value = null
     useCatalogosStore().limpiar()
+    useProveedoresStore().limpiar()
   }
 
   return {

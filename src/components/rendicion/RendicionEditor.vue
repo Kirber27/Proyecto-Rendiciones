@@ -4,9 +4,11 @@
 //   aprobar → Por aprobar · libro → edición en el libro (con Cuenta y C.C.)
 // Los botones los pone cada pantalla en el slot #acciones; Rendir gastos pone en #respaldos la zona
 // para adjuntar (por defecto se muestran los respaldos, si hay).
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { centroCostoDeEmpresa } from '@/domain/catalogos'
 import { lineaVacia, sumaLineas, totalFormularioDe } from '@/domain/rendicion'
+import { siguienteNro } from '@/services/rendiciones'
+import { useAuthStore } from '@/stores/auth'
 import type { Catalogos } from '@/types/catalogos'
 import type { BorradorRendicion, ModoEditor, Respaldo } from '@/types/rendicion'
 import CuadreTotales from './CuadreTotales.vue'
@@ -28,9 +30,37 @@ const props = withDefaults(
 )
 const emit = defineEmits<{ quitarRespaldo: [indice: number] }>()
 
+const auth = useAuthStore()
 const conCuentas = computed(() => props.modo !== 'persona')
 const suma = computed(() => sumaLineas(d.value))
 const totalFormulario = computed(() => totalFormularioDe(d.value))
+
+// Nº correlativo (spec 11, R1): no se escribe. Una rendición guardada conserva su Nº mientras no cambie
+// la persona; si no, se muestra el siguiente de la persona elegida (el servidor lo confirma al guardar).
+let original: { personaId: string | null; nro: string } | null = null
+let consulta = 0
+watch(
+  () => [d.value, d.value.personaId] as const,
+  async ([borrador, personaId], antes) => {
+    if (!antes || antes[0] !== borrador) {
+      original = borrador.id ? { personaId: borrador.personaId, nro: borrador.nro } : null
+    }
+    const yo = ++consulta
+    if (original && personaId === original.personaId) {
+      borrador.nro = original.nro
+      return
+    }
+    borrador.nro = ''
+    if (!personaId) return
+    try {
+      const nro = await siguienteNro(personaId)
+      if (yo === consulta) borrador.nro = String(nro)
+    } catch {
+      // Sin el Nº a la vista igual se puede enviar: lo asigna el servidor.
+    }
+  },
+  { immediate: true },
+)
 
 function agregarLinea() {
   d.value.lineas.push(
@@ -54,7 +84,13 @@ function agregarLinea() {
             <i class="bi bi-plus-lg" aria-hidden="true" /> Agregar línea
           </button>
         </div>
-        <LineasTable v-model="d.lineas" :catalogos="catalogos" :con-cuentas="conCuentas" />
+        <LineasTable
+          v-model="d.lineas"
+          :catalogos="catalogos"
+          :con-cuentas="conCuentas"
+          :rendicion-id="d.id"
+          :puede-crear-subcuenta="auth.esTesoreria"
+        />
         <CuadreTotales :suma="suma" :total-formulario="totalFormulario" />
       </div>
     </section>

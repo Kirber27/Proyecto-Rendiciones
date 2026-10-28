@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { roles: ['administrador'], pestana: { texto: 'Perfiles', orden: 7 } },
   },
   {
+    path: '/proveedores',
+    name: 'proveedores',
+    component: () => import('@/views/ProveedoresView.vue'),
+    meta: { roles: '*', pestana: { texto: 'Proveedores', orden: 8 } },
+  },
+  {
     path: '/clave',
     name: 'clave',
     component: () => import('@/views/CambiarClaveView.vue'),

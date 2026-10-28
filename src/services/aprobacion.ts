@@ -137,6 +137,7 @@ export function aBorradorDesdeBase(
       .map((l) => ({
         fecha: l.fecha ?? '',
         tipo: l.tipo as TipoDocumento,
+        proveedorId: l.proveedor_id,
         proveedor: l.proveedor,
         rut: l.rut,
         numero: l.numero,

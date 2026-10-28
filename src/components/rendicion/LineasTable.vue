@@ -1,23 +1,77 @@
 <script setup lang="ts">
 // Líneas de gasto editables: tabla en escritorio, una tarjeta por línea en el celular.
 // Cuenta y C.C. solo los ve tesorería (`conCuentas`).
+import { ref, useId } from 'vue'
+import { useDocumentoRepetido } from '@/composables/useDocumentoRepetido'
 import { useEsAncho } from '@/composables/useMediaQuery'
 import MoneyInput from '@/components/ui/MoneyInput.vue'
 import { clp, tr } from '@/domain/formato'
 import { cuentaSugerida } from '@/domain/catalogos'
-import { lineaVacia, totalLinea } from '@/domain/rendicion'
-import type { Catalogos } from '@/types/catalogos'
+import { ivaLinea, lineaVacia, totalLinea } from '@/domain/rendicion'
+import { formatearRut } from '@/domain/rut'
+import type { Catalogos, Subcuenta } from '@/types/catalogos'
+import type { Proveedor } from '@/types/proveedores'
 import { TIPOS_DOCUMENTO, type LineaBorrador } from '@/types/rendicion'
+import NuevaSubcuenta from './NuevaSubcuenta.vue'
+import ProveedorSelect from './ProveedorSelect.vue'
 
 const lineas = defineModel<LineaBorrador[]>({ required: true })
-const props = defineProps<{ catalogos: Catalogos; conCuentas: boolean }>()
+const props = defineProps<{
+  catalogos: Catalogos
+  conCuentas: boolean
+  /** Rendición que se edita (no choca consigo misma al revisar el Nº de documento). */
+  rendicionId?: string
+  /** Tesorería puede agregar una subcuenta desde el selector. */
+  puedeCrearSubcuenta?: boolean
+}>()
 
 const esAncho = useEsAncho()
+const id = useId()
+const { errorDocumento } = useDocumentoRepetido(lineas, () => props.rendicionId)
 
-function cambiarSubcuenta(l: LineaBorrador, id: number | null) {
+function cambiarSubcuenta(l: LineaBorrador, id: number | null, sugerida?: number | null) {
   l.subcuentaId = id
-  const c = cuentaSugerida(id, props.catalogos.subcuentas)
+  const c = sugerida !== undefined ? sugerida : cuentaSugerida(id, props.catalogos.subcuentas)
   if (c != null) l.cuentaId = c
+}
+
+/** Valor de la opción "+ Nueva subcuenta…" (spec 11, R6). */
+const NUEVA = '__nueva'
+/** Línea que espera su subcuenta nueva (modal abierto). */
+const lineaNuevaSubcuenta = ref<LineaBorrador | null>(null)
+
+function elegirSubcuenta(l: LineaBorrador, select: HTMLSelectElement) {
+  if (select.value === NUEVA) {
+    // El selector vuelve a mostrar la subcuenta que tenía hasta que se cree la nueva.
+    select.value = l.subcuentaId == null ? '' : String(l.subcuentaId)
+    lineaNuevaSubcuenta.value = l
+    return
+  }
+  cambiarSubcuenta(l, select.value ? Number(select.value) : null)
+}
+
+function subcuentaCreada(s: Subcuenta) {
+  if (lineaNuevaSubcuenta.value) cambiarSubcuenta(lineaNuevaSubcuenta.value, s.id, s.cuentaSugeridaId)
+  lineaNuevaSubcuenta.value = null
+}
+
+// IVA (spec 11, R4): no se escribe. Se recalcula al cambiar el neto o el tipo; una línea guardada
+// conserva el suyo mientras no se toquen (el historial puede traer otro redondeo).
+function cambiarNeto(l: LineaBorrador, neto: LineaBorrador['neto']) {
+  l.neto = neto
+  l.iva = ivaLinea(l)
+}
+
+function cambiarTipo(l: LineaBorrador, tipo: string) {
+  l.tipo = tipo as LineaBorrador['tipo']
+  l.iva = ivaLinea(l)
+}
+
+/** Al elegir el proveedor, la línea toma su nombre y su RUT (el RUT no se escribe). */
+function elegirProveedor(l: LineaBorrador, p: Proveedor) {
+  l.proveedorId = p.id
+  l.proveedor = p.nombre
+  l.rut = p.rut
 }
 
 function quitar(i: number) {
@@ -42,6 +96,7 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
           <th class="n">Neto</th>
           <th class="n">IVA</th>
           <th class="n">Exento / monto</th>
+          <th class="n">Imp. especial</th>
           <th class="n">Total</th>
           <th>Detalle</th>
           <th>Subcuenta</th>
@@ -64,45 +119,57 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
           </td>
           <td>
             <select
-              v-model="l.tipo"
+              :value="l.tipo"
               class="form-select form-select-sm w-tipo"
               :aria-label="`Tipo línea ${i + 1}`"
+              @change="cambiarTipo(l, ($event.target as HTMLSelectElement).value)"
             >
               <option v-for="t in TIPOS_DOCUMENTO" :key="t" :value="t">{{ t }}</option>
             </select>
           </td>
-          <td>
-            <input
-              v-model="l.proveedor"
-              class="form-control form-control-sm w-texto"
-              :aria-label="`Proveedor línea ${i + 1}`"
+          <td class="w-proveedor">
+            <ProveedorSelect
+              :proveedor-id="l.proveedorId"
+              :texto="l.proveedor"
+              :etiqueta="`Proveedor línea ${i + 1}`"
+              chico
+              @elegir="elegirProveedor(l, $event)"
             />
           </td>
           <td>
             <input
-              v-model="l.rut"
-              class="form-control form-control-sm w-rut"
+              :value="formatearRut(l.rut)"
+              class="form-control form-control-sm mono bg-body-tertiary w-rut"
+              readonly
               :aria-label="`RUT línea ${i + 1}`"
             />
           </td>
           <td>
             <input
               v-model="l.numero"
-              class="form-control form-control-sm mono w-doc"
+              :class="['form-control form-control-sm mono w-doc', errorDocumento(i) && 'is-invalid']"
               :aria-label="`Nº documento línea ${i + 1}`"
+              :aria-invalid="!!errorDocumento(i)"
+              :aria-describedby="errorDocumento(i) ? `${id}-doc-${i}` : undefined"
             />
+            <div v-if="errorDocumento(i)" :id="`${id}-doc-${i}`" class="invalid-feedback w-doc">
+              {{ errorDocumento(i) }}
+            </div>
           </td>
           <td>
             <MoneyInput
-              v-model="l.neto"
+              :model-value="l.neto"
               class="form-control-sm w-monto"
               :aria-label="`Neto línea ${i + 1}`"
+              @update:model-value="cambiarNeto(l, $event)"
             />
           </td>
           <td>
             <MoneyInput
-              v-model="l.iva"
-              class="form-control-sm w-monto"
+              :model-value="l.iva"
+              class="form-control-sm w-monto bg-body-tertiary"
+              readonly
+              title="Neto × 19 %: se calcula solo"
               :aria-label="`IVA línea ${i + 1}`"
             />
           </td>
@@ -111,6 +178,14 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
               v-model="l.exento"
               class="form-control-sm w-monto"
               :aria-label="`Exento línea ${i + 1}`"
+            />
+          </td>
+          <td>
+            <MoneyInput
+              v-model="l.otros"
+              class="form-control-sm w-monto"
+              placeholder="Opcional"
+              :aria-label="`Impuesto especial línea ${i + 1}`"
             />
           </td>
           <td class="n">{{ clp(totalLinea(l)) }}</td>
@@ -126,19 +201,13 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
               :value="l.subcuentaId"
               class="form-select form-select-sm w-sub"
               :aria-label="`Subcuenta línea ${i + 1}`"
-              @change="
-                cambiarSubcuenta(
-                  l,
-                  ($event.target as HTMLSelectElement).value
-                    ? Number(($event.target as HTMLSelectElement).value)
-                    : null,
-                )
-              "
+              @change="elegirSubcuenta(l, $event.target as HTMLSelectElement)"
             >
               <option value="">Elegir…</option>
               <option v-for="s in catalogos.subcuentas" :key="s.id" :value="s.id">
                 {{ tr(s.nombre) }}
               </option>
+              <option v-if="puedeCrearSubcuenta" :value="NUEVA">+ Nueva subcuenta…</option>
             </select>
           </td>
           <template v-if="conCuentas">
@@ -209,35 +278,60 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
           <div class="col-6">
             <label class="label-caps"
               >Tipo
-              <select v-model="l.tipo" class="form-select form-select-sm">
+              <select
+                :value="l.tipo"
+                class="form-select form-select-sm"
+                @change="cambiarTipo(l, ($event.target as HTMLSelectElement).value)"
+              >
                 <option v-for="t in TIPOS_DOCUMENTO" :key="t" :value="t">{{ t }}</option>
               </select>
             </label>
           </div>
           <div class="col-12">
+            <span class="label-caps">Proveedor</span>
+            <ProveedorSelect
+              :proveedor-id="l.proveedorId"
+              :texto="l.proveedor"
+              :etiqueta="`Proveedor gasto ${i + 1}`"
+              chico
+              @elegir="elegirProveedor(l, $event)"
+            />
+          </div>
+          <div class="col-6">
             <label class="label-caps"
-              >Proveedor<input v-model="l.proveedor" class="form-control form-control-sm"
+              >RUT<input
+                :value="formatearRut(l.rut)"
+                class="form-control form-control-sm mono bg-body-tertiary"
+                readonly
             /></label>
           </div>
           <div class="col-6">
             <label class="label-caps"
-              >RUT<input v-model="l.rut" class="form-control form-control-sm"
+              >Nº doc.<input
+                v-model="l.numero"
+                :class="['form-control form-control-sm mono', errorDocumento(i) && 'is-invalid']"
+                :aria-invalid="!!errorDocumento(i)"
+                :aria-describedby="errorDocumento(i) ? `${id}-docm-${i}` : undefined"
             /></label>
-          </div>
-          <div class="col-6">
-            <label class="label-caps"
-              >Nº doc.<input v-model="l.numero" class="form-control form-control-sm mono"
-            /></label>
+            <div v-if="errorDocumento(i)" :id="`${id}-docm-${i}`" class="invalid-feedback d-block">
+              {{ errorDocumento(i) }}
+            </div>
           </div>
           <template v-if="esFactura(l)">
             <div class="col-4">
               <label class="label-caps"
-                >Neto<MoneyInput v-model="l.neto" class="form-control-sm"
+                >Neto<MoneyInput
+                  :model-value="l.neto"
+                  class="form-control-sm"
+                  @update:model-value="cambiarNeto(l, $event)"
               /></label>
             </div>
             <div class="col-4">
               <label class="label-caps"
-                >IVA<MoneyInput v-model="l.iva" class="form-control-sm"
+                >IVA<MoneyInput
+                  :model-value="l.iva"
+                  class="form-control-sm bg-body-tertiary"
+                  readonly
               /></label>
             </div>
             <div class="col-4">
@@ -246,9 +340,18 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
               /></label>
             </div>
           </template>
-          <div v-else class="col-12">
+          <div v-else class="col-6">
             <label class="label-caps"
               >Monto<MoneyInput v-model="l.exento" class="form-control-sm"
+            /></label>
+          </div>
+          <div class="col-6">
+            <label class="label-caps"
+              >Imp. especial<MoneyInput
+                v-model="l.otros"
+                class="form-control-sm"
+                placeholder="Opcional"
+                :aria-label="`Impuesto especial gasto ${i + 1}`"
             /></label>
           </div>
           <div class="col-12">
@@ -262,19 +365,13 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
               <select
                 :value="l.subcuentaId"
                 class="form-select form-select-sm"
-                @change="
-                  cambiarSubcuenta(
-                    l,
-                    ($event.target as HTMLSelectElement).value
-                      ? Number(($event.target as HTMLSelectElement).value)
-                      : null,
-                  )
-                "
+                @change="elegirSubcuenta(l, $event.target as HTMLSelectElement)"
               >
                 <option value="">Elegir…</option>
                 <option v-for="s in catalogos.subcuentas" :key="s.id" :value="s.id">
                   {{ tr(s.nombre) }}
                 </option>
+                <option v-if="puedeCrearSubcuenta" :value="NUEVA">+ Nueva subcuenta…</option>
               </select>
             </label>
           </div>
@@ -306,6 +403,13 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
       </div>
     </div>
   </div>
+
+  <NuevaSubcuenta
+    v-if="lineaNuevaSubcuenta"
+    :catalogos="catalogos"
+    @elegida="subcuentaCreada"
+    @cerrar="lineaNuevaSubcuenta = null"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -323,6 +427,9 @@ const esFactura = (l: LineaBorrador) => l.tipo === 'Factura'
 }
 .w-rut {
   width: 110px;
+}
+.w-proveedor {
+  min-width: 200px;
 }
 .w-doc {
   width: 150px;

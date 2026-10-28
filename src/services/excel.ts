@@ -1,4 +1,5 @@
-// Escritura del Excel de rendiciones con SheetJS (se carga solo cuando se exporta).
+// Excel con SheetJS (se carga solo cuando se usa): escritura del libro de rendiciones y lectura de
+// archivos (cartolas, listas de proveedores).
 import {
   ANCHOS_EXCEL,
   COLUMNAS_FECHA,
@@ -35,4 +36,20 @@ export async function construirLibroExcel(filas: readonly CeldaExcel[][]): Promi
 export async function descargarExcel(filas: readonly CeldaExcel[][], nombre: string) {
   const datos = await construirLibroExcel(filas)
   descargar(new Blob([datos], { type: TIPO_XLSX }), nombre)
+}
+
+/**
+ * Primera hoja de un archivo (.xlsx, .xls o .csv) como filas de celdas.
+ * Si no se puede leer, lanza `mensajeError` (cada pantalla dice qué archivo espera).
+ */
+export async function leerFilasHoja(archivo: File, mensajeError: string): Promise<unknown[][]> {
+  try {
+    const XLSX = await import('xlsx')
+    const wb = XLSX.read(await archivo.arrayBuffer(), { type: 'array', cellDates: true })
+    const hoja = wb.Sheets[wb.SheetNames[0]!]
+    if (!hoja) throw new Error('sin hojas')
+    return XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, raw: true, defval: '' })
+  } catch {
+    throw new Error(mensajeError)
+  }
 }

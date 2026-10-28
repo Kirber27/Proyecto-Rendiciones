@@ -5,7 +5,7 @@ import { tipoRespaldo } from '@/domain/respaldos'
 import type { Json } from '@/lib/database.types'
 import { reducirImagen } from '@/lib/imagenes'
 import { supabase } from '@/lib/supabase'
-import type { BorradorRendicion, TipoRespaldo } from '@/types/rendicion'
+import type { BorradorRendicion, TipoDocumento, TipoRespaldo } from '@/types/rendicion'
 
 export const BUCKET_RESPALDOS = 'respaldos'
 
@@ -91,5 +91,34 @@ export async function enviarRendicion(
     p: { ...payload, respaldos: [...borrador.respaldos, ...nuevas] } as unknown as Json,
   })
   if (error) throw new Error(error.message)
-  return { id: rendicionId, nro: payload.nro, total: sumaLineas(borrador), reenvio }
+  // El Nº lo asigna el servidor (correlativo por persona): se lee el definitivo.
+  const { data } = await supabase.from('rendiciones').select('nro').eq('id', rendicionId).maybeSingle()
+  return { id: rendicionId, nro: data?.nro ?? payload.nro, total: sumaLineas(borrador), reenvio }
+}
+
+/**
+ * Si el documento (RUT del proveedor + tipo + Nº) ya está en otra rendición no eliminada ni rechazada.
+ * `excluir` = la rendición que se está editando. La base solo responde sí o no.
+ */
+export async function documentoRepetido(
+  rut: string,
+  tipo: TipoDocumento,
+  numero: string,
+  excluir?: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('documento_repetido', {
+    p_rut: rut,
+    p_tipo: tipo,
+    p_numero: numero,
+    ...(excluir ? { p_excluir: excluir } : {}),
+  })
+  if (error) throw new Error(error.message)
+  return !!data
+}
+
+/** Nº que tendría la próxima rendición de la persona (mayor Nº + 1). Lo confirma el servidor al enviar. */
+export async function siguienteNro(personaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('siguiente_nro', { p_persona: personaId })
+  if (error) throw new Error(error.message)
+  return data
 }

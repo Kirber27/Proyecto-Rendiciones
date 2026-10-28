@@ -47,9 +47,17 @@ export interface ConLineas {
 export interface LineaBorrador extends MontosLinea {
   fecha: string
   tipo: TipoDocumento
+  /** Proveedor elegido de la lista (null en líneas del historial o aún sin elegir). */
+  proveedorId: string | null
+  /** Nombre y RUT como se rindieron (al elegir, los del proveedor). */
   proveedor: string
   rut: string
   numero: string
+  /**
+   * El Nº de documento ya está cargado para este proveedor en otra rendición (lo marca la consulta a
+   * la base mientras se escribe; no se guarda).
+   */
+  numeroRepetido?: boolean
   detalle: string
   subcuentaId: number | null
   cuentaId: number | null
@@ -76,6 +84,7 @@ export interface LineaPayload {
   orden: number
   fecha: string
   tipo: TipoDocumento
+  proveedor_id: string | null
   proveedor: string
   rut: string
   numero: string

@@ -145,5 +145,6 @@ export function filasExcel(
   return filas
 }
 
-/** Nombre del archivo: Rendiciones_YYYY-MM-DD.xlsx */
-export const nombreArchivoExcel = (hoy: string) => `Rendiciones_${hoy}.xlsx`
+/** Nombre del archivo: Rendiciones_YYYY-MM-DD.xlsx (o Rendiciones_busqueda_… para una búsqueda). */
+export const nombreArchivoExcel = (hoy: string, sufijo = '') =>
+  `Rendiciones_${sufijo ? `${sufijo}_` : ''}${hoy}.xlsx`

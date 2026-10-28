@@ -171,6 +171,7 @@ describe('entradaReporte', () => {
       {
         fecha: '2026-09-01',
         tipo: 'Boleta',
+        proveedorId: null,
         proveedor: 'Copec',
         rut: '',
         numero: '9',

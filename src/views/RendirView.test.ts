@@ -10,7 +10,9 @@ vi.mock('@/services/aprobacion', () => ({
   urlsFirmadas: vi.fn(async () => new Map()),
 }))
 const enviarRendicion = vi.hoisted(() => vi.fn())
-vi.mock('@/services/rendiciones', () => ({ enviarRendicion }))
+const siguienteNro = vi.hoisted(() => vi.fn(async () => 5))
+vi.mock('@/services/rendiciones', () => ({ enviarRendicion, siguienteNro }))
+vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 
 const { default: RendirView } = await import('./RendirView.vue')
 const { useAuthStore } = await import('@/stores/auth')
@@ -44,10 +46,17 @@ describe('RendirView', () => {
     expect(w.text()).not.toMatch(/Leyendo|Leer con IA|Volver a leer/)
   })
 
+  it('el Nº es el correlativo de la persona y no se escribe', async () => {
+    const w = await montar()
+    const nro = w.find('input[readonly].mono')
+    expect(siguienteNro).toHaveBeenCalledWith('p-1')
+    expect((nro.element as HTMLInputElement).value).toBe('5')
+  })
+
   it('Enviar valida y muestra los problemas sin llamar al envío', async () => {
     const w = await montar()
     await boton(w, 'Enviar rendición').trigger('click')
-    expect(w.find('[role="alert"]').text()).toContain('Falta el Nº de rendición.')
+    expect(w.find('[role="alert"]').text()).toContain('Línea 1: elige el proveedor.')
     expect(w.text()).toContain('Línea 1: falta el monto.')
     expect(w.text()).toContain('Adjunta al menos un respaldo')
     expect(enviarRendicion).not.toHaveBeenCalled()
@@ -65,11 +74,13 @@ describe('RendirView', () => {
   it('Descartar pide confirmación y deja el formulario vacío', async () => {
     const w = await montar()
     const rendir = useRendirStore()
-    rendir.borrador!.nro = '12'
+    rendir.borrador!.fondo = 'FONDOS POR RENDIR'
     await boton(w, 'Descartar').trigger('click')
     expect(w.text()).toContain('¿Descartar esta rendición?')
     await boton(w, 'Sí, descartar').trigger('click')
-    expect(rendir.borrador!.nro).toBe('')
+    await flushPromises()
+    expect(rendir.borrador!.fondo).toBe('')
+    expect(rendir.borrador!.nro).toBe('5') // el formulario nuevo vuelve a tener su correlativo
     expect(w.text()).not.toContain('¿Descartar esta rendición?')
   })
 })

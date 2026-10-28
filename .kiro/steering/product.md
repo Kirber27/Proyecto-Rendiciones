@@ -35,6 +35,7 @@ Esta versión reemplaza al prototipo que vivía como artifact de Claude (`CLAUDE
 | Personas | tesorería | Cuenta corriente por persona (rendido, pagado, saldo, faltantes del correlativo). Pagos/anticipos manuales. |
 | Banco | tesorería | Carga de cartola, mapeo de columnas, propuestas de conciliación, asignación manual. |
 | Perfiles | administrador | CRUD de personas, funciones, código, correo, cuentas (crear, nueva contraseña) y vínculo de cuentas. |
+| Proveedores | todos (agregar) · tesorería (editar, eliminar, importar Excel) | Registro de proveedores con RUT para elegirlos en cada gasto (spec 11). |
 
 ## Idioma y formato
 

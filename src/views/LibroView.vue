@@ -30,14 +30,23 @@ const exportando = ref(false)
 onMounted(libro.cargar)
 
 const porRendicion = computed(() => libro.asignacion.porRendicion)
-const kpis = computed(() => kpisLibro(libro.filas, porRendicion.value))
 const lista = computed(() =>
   filtrarLibro(libro.filas, porRendicion.value, filtro.value, buscar.value),
 )
+/** Hay búsqueda o filtro: las tarjetas muestran lo que está en la tabla (spec 11, R7). */
+const filtrando = computed(() => !!buscar.value.trim() || filtro.value !== 'Todas')
+const kpisCompletos = computed(() => kpisLibro(libro.filas, porRendicion.value))
+const kpis = computed(() =>
+  filtrando.value ? kpisLibro(lista.value, porRendicion.value) : kpisCompletos.value,
+)
 const vista = computed(() => paginar(lista.value, pagina.value))
 const seleccion = computed(() => libro.filas.find((f) => f.id === seleccionId.value) ?? null)
+/** Excel (búsqueda): solo con búsqueda o filtro y alguna aprobada en la tabla. */
+const puedeExportarBusqueda = computed(
+  () => filtrando.value && lista.value.some((f) => f.estado === 'aprobada'),
+)
 const filtros = computed(() =>
-  FILTROS_LIBRO.filter((f) => f !== 'Eliminadas' || kpis.value.eliminadas),
+  FILTROS_LIBRO.filter((f) => f !== 'Eliminadas' || kpisCompletos.value.eliminadas),
 )
 
 watch([filtro, buscar], () => (pagina.value = 1))
@@ -60,11 +69,14 @@ async function alCambiar(texto: string) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-async function exportar(soloNuevas: boolean) {
+async function exportar(modo: 'nuevas' | 'todas' | 'busqueda') {
   exportando.value = true
   mensaje.value = null
   try {
-    const texto = await libro.exportarExcel(soloNuevas)
+    const texto =
+      modo === 'busqueda'
+        ? await libro.exportarBusqueda(lista.value)
+        : await libro.exportarExcel(modo === 'nuevas')
     mensaje.value = { tipo: texto.startsWith('Excel') ? 'success' : 'info', texto }
   } catch (e) {
     mensaje.value = { tipo: 'danger', texto: `No se pudo exportar: ${(e as Error).message}` }
@@ -81,11 +93,17 @@ async function exportar(soloNuevas: boolean) {
       lead="Libro de rendiciones aprobadas, con el historial 2026. El estado de pago se calcula con los pagos registrados de cada persona."
     />
 
-    <div class="kpis">
-      <KpiTile etiqueta="Rendiciones" :valor="kpis.cantidad" />
-      <KpiTile etiqueta="Total rendido" :valor="clp(kpis.rendido)" />
-      <KpiTile etiqueta="Pendiente de pago" :valor="clp(kpis.pendiente)" />
-      <KpiTile etiqueta="Sin exportar a Excel" :valor="kpis.sinExportar" />
+    <div class="d-flex flex-column gap-1">
+      <div class="kpis" data-test="kpis">
+        <KpiTile etiqueta="Rendiciones" :valor="kpis.cantidad" />
+        <KpiTile etiqueta="Total rendido" :valor="clp(kpis.rendido)" />
+        <KpiTile etiqueta="Pendiente de pago" :valor="clp(kpis.pendiente)" />
+        <KpiTile etiqueta="Sin exportar a Excel" :valor="kpis.sinExportar" />
+      </div>
+      <p v-if="filtrando" class="small text-body-secondary mb-0" data-test="kpis-busqueda">
+        <i class="bi bi-funnel" aria-hidden="true" /> Según la búsqueda y el filtro: solo las
+        rendiciones de la tabla.
+      </p>
     </div>
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -111,12 +129,12 @@ async function exportar(soloNuevas: boolean) {
           aria-label="Buscar persona, folio o Nº"
         />
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex flex-wrap gap-2">
         <button
           type="button"
           class="btn btn-sm btn-outline-primary"
           :disabled="exportando || !libro.cargado"
-          @click="exportar(true)"
+          @click="exportar('nuevas')"
         >
           <i class="bi bi-file-earmark-excel" aria-hidden="true" /> Excel (nuevas)
         </button>
@@ -124,9 +142,22 @@ async function exportar(soloNuevas: boolean) {
           type="button"
           class="btn btn-sm btn-outline-secondary"
           :disabled="exportando || !libro.cargado"
-          @click="exportar(false)"
+          @click="exportar('todas')"
         >
           Excel (todas)
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary"
+          :disabled="exportando || !puedeExportarBusqueda"
+          :title="
+            puedeExportarBusqueda
+              ? 'Exporta lo que muestra la tabla (no las marca como exportadas)'
+              : 'Busca o filtra para exportar solo esas rendiciones'
+          "
+          @click="exportar('busqueda')"
+        >
+          <i class="bi bi-funnel" aria-hidden="true" /> Excel (búsqueda)
         </button>
       </div>
     </div>

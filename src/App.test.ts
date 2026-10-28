@@ -71,7 +71,7 @@ describe('App: sesión', () => {
     iniciarSesion(null)
     const w = await montar('/rendir')
     expect(w.text()).toContain('no está vinculada a ninguna persona')
-    expect(pestanas(w)).toEqual(['Rendir gastos', 'Mis rendiciones'])
+    expect(pestanas(w)).toEqual(['Rendir gastos', 'Mis rendiciones', 'Proveedores'])
   })
 
   it('con contraseña temporal, cualquier ruta lleva a elegir una propia', async () => {
@@ -99,9 +99,9 @@ describe('App: sesión', () => {
 })
 
 describe('App: pestañas y permisos', () => {
-  it('solicitante ve solo Rendir gastos y Mis rendiciones', async () => {
+  it('solicitante ve solo Rendir gastos, Mis rendiciones y Proveedores', async () => {
     const w = await montarComo('solicitante', '/rendir')
-    expect(pestanas(w)).toEqual(['Rendir gastos', 'Mis rendiciones'])
+    expect(pestanas(w)).toEqual(['Rendir gastos', 'Mis rendiciones', 'Proveedores'])
   })
 
   it('tesorero ve todo menos Perfiles', async () => {
@@ -113,6 +113,7 @@ describe('App: pestañas y permisos', () => {
       'Rendiciones',
       'Personas',
       'Banco',
+      'Proveedores',
     ])
   })
 

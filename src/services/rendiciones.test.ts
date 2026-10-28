@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { lineaVacia } from '@/domain/rendicion'
 import type { BorradorRendicion } from '@/types/rendicion'
 
-const sb = vi.hoisted(() => ({ upload: vi.fn(), rpc: vi.fn() }))
+const sb = vi.hoisted(() => ({ upload: vi.fn(), rpc: vi.fn(), nro: vi.fn() }))
 vi.mock('@/lib/supabase', () => ({
-  supabase: { storage: { from: () => ({ upload: sb.upload }) }, rpc: sb.rpc },
+  supabase: {
+    storage: { from: () => ({ upload: sb.upload }) },
+    rpc: sb.rpc,
+    // Lectura del Nº asignado por el servidor tras enviar.
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: sb.nro }) }) }),
+  },
 }))
 vi.mock('@/lib/imagenes', () => ({ reducirImagen: vi.fn(async (f: Blob) => f) }))
-const { enviarRendicion, rutaRespaldo } = await import('./rendiciones')
+const { enviarRendicion, rutaRespaldo, siguienteNro } = await import('./rendiciones')
 
 const PERSONA = 'p-1'
 const borrador = (c: Partial<BorradorRendicion> = {}): BorradorRendicion => ({
@@ -30,6 +35,7 @@ const pdf = (id: string) => ({
 beforeEach(() => {
   sb.upload.mockReset().mockResolvedValue({ error: null })
   sb.rpc.mockReset().mockResolvedValue({ data: 'r-1', error: null })
+  sb.nro.mockReset().mockResolvedValue({ data: { nro: 12 }, error: null })
 })
 
 describe('enviarRendicion', () => {
@@ -123,5 +129,24 @@ describe('enviarRendicion', () => {
     await expect(
       enviarRendicion(borrador(), [], { rendicionId: 'r-1', subidas: new Map() }),
     ).rejects.toThrow('ya fue revisada')
+  })
+})
+
+describe('Nº correlativo', () => {
+  it('enviar devuelve el Nº que asignó el servidor', async () => {
+    sb.nro.mockResolvedValueOnce({ data: { nro: 15 }, error: null })
+    const r = await enviarRendicion(borrador(), [foto('a')], {
+      rendicionId: 'r-1',
+      subidas: new Map(),
+    })
+    expect(r.nro).toBe(15)
+  })
+
+  it('siguienteNro consulta la RPC de la persona', async () => {
+    sb.rpc.mockResolvedValueOnce({ data: 7, error: null })
+    expect(await siguienteNro('p-1')).toBe(7)
+    expect(sb.rpc).toHaveBeenCalledWith('siguiente_nro', { p_persona: 'p-1' })
+    sb.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Solo puedes ver tu propio correlativo.' } })
+    await expect(siguienteNro('p-2')).rejects.toThrow('Solo puedes ver tu propio correlativo.')
   })
 })

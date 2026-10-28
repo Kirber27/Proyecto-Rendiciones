@@ -22,6 +22,8 @@ const otros = vi.hoisted(() => ({
   descargarReportePdf: vi.fn(),
 }))
 vi.mock('@/services/libro', () => srv)
+vi.mock('@/services/rendiciones', () => ({ siguienteNro: vi.fn(async () => 50) }))
+vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 vi.mock('@/services/pagos', () => ({ leerPagos: otros.leerPagos }))
 vi.mock('@/services/aprobacion', () => ({
   abrirRendicion: otros.abrirRendicion,
@@ -152,6 +154,37 @@ describe('LibroView', () => {
     expect(filasTabla(w).map((t) => t.find('td').text())).toEqual(['MSO-003'])
   })
 
+  it('las tarjetas siguen a la búsqueda y al filtro (todas las páginas)', async () => {
+    const w = await montar()
+    const kpis = () => w.findAll('.kpi').map((k) => k.text())
+    expect(w.find('[data-test="kpis-busqueda"]').exists()).toBe(false)
+
+    await w.find('input[type="search"]').setValue('soto')
+    expect(kpis()).toEqual([
+      'Rendiciones2',
+      'Total rendido$ 15.000',
+      'Pendiente de pago$ 5.000',
+      'Sin exportar a Excel1',
+    ])
+    expect(w.find('[data-test="kpis-busqueda"]').text()).toContain('Según la búsqueda')
+
+    await w.find('input[type="search"]').setValue('')
+    await boton(w, 'Pagada').trigger('click')
+    expect(kpis()).toEqual([
+      'Rendiciones1',
+      'Total rendido$ 10.000',
+      'Pendiente de pago$ 0',
+      'Sin exportar a Excel0',
+    ])
+
+    await boton(w, 'Todas').trigger('click')
+    expect(kpis()[0]).toBe('Rendiciones3')
+    expect(w.find('[data-test="kpis-busqueda"]').exists()).toBe(false)
+    // El filtro Eliminadas sigue disponible aunque la búsqueda no muestre eliminadas
+    await w.find('input[type="search"]').setValue('perez')
+    expect(boton(w, 'Eliminadas')).toBeTruthy()
+  })
+
   it('detalle: resumen, editor de libro y guardar con evento', async () => {
     srv.editarRendicion.mockResolvedValue('MSO-002')
     const w = await montar()
@@ -236,5 +269,31 @@ describe('LibroView', () => {
     await flushPromises()
     expect(srv.leerLineas).toHaveBeenLastCalledWith(['h', 'a', 'b'])
     expect(srv.marcarExportadas).toHaveBeenCalledTimes(1)
+  })
+
+  it('Excel (búsqueda) exporta lo que muestra la tabla, sin marcarlo como exportado', async () => {
+    srv.leerLineas.mockResolvedValue(new Map())
+    const w = await montar()
+    const excelBusqueda = () => boton(w, 'Excel (búsqueda)')
+    expect(excelBusqueda().attributes('disabled')).toBeDefined() // sin búsqueda ni filtro
+
+    await w.find('input[type="search"]').setValue('soto')
+    expect(excelBusqueda().attributes('disabled')).toBeUndefined()
+    await excelBusqueda().trigger('click')
+    await flushPromises()
+    expect(srv.leerLineas).toHaveBeenCalledWith(['a', 'b'])
+    expect(otros.descargarExcel).toHaveBeenCalledWith(
+      [],
+      expect.stringMatching(/^Rendiciones_busqueda_\d{4}-\d{2}-\d{2}\.xlsx$/),
+    )
+    expect(srv.marcarExportadas).not.toHaveBeenCalled()
+    expect(w.find('[role="status"]').text()).toBe(
+      'Excel con 2 rendición(es) y 0 línea(s) de la búsqueda.',
+    )
+
+    // Solo eliminadas en la tabla: nada que exportar
+    await w.find('input[type="search"]').setValue('')
+    await boton(w, 'Eliminadas').trigger('click')
+    expect(excelBusqueda().attributes('disabled')).toBeDefined()
   })
 })

@@ -65,14 +65,14 @@ describe('useRendirStore', () => {
     sesion('solicitante')
     const r = useRendirStore()
     await r.iniciar()
-    r.borrador!.nro = '8'
-    expect(JSON.parse(localStorage.getItem('rendir:borrador:u-1')!).nro).toBe('8')
+    r.borrador!.fondo = 'FONDOS POR RENDIR'
+    expect(JSON.parse(localStorage.getItem('rendir:borrador:u-1')!).fondo).toBe('FONDOS POR RENDIR')
 
     setActivePinia(createPinia())
     sesion('solicitante')
     const otra = useRendirStore()
     await otra.iniciar()
-    expect(otra.borrador!.nro).toBe('8')
+    expect(otra.borrador!.fondo).toBe('FONDOS POR RENDIR')
     expect(otra.aviso!.texto).toContain('vuelve a adjuntarlos')
   })
 
@@ -103,7 +103,7 @@ describe('useRendirStore', () => {
     localStorage.setItem('rendir:borrador:u-2', JSON.stringify({ nro: '99' }))
     const r = useRendirStore()
     await r.iniciar()
-    r.borrador!.nro = '8'
+    r.borrador!.fondo = 'FONDOS POR RENDIR'
     r.agregarArchivos([foto()])
     sesion('solicitante', 'p-3', 'u-2')
     await flushPromises()

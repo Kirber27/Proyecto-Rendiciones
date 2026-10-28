@@ -3,9 +3,13 @@ import { catalogosDemo } from '@/dev/catalogosDemo'
 import type { BorradorRendicion } from '@/types/rendicion'
 import {
   borradorNuevo,
+  claveDocumento,
   cuadra,
+  ivaDe,
+  ivaLinea,
   lineaVacia,
   limpiarRendicion,
+  repetidosEnFormulario,
   sumaLineas,
   tieneDatos,
   totalFormularioDe,
@@ -120,12 +124,12 @@ describe('tieneDatos', () => {
     expect(tieneDatos(vacio())).toBe(false)
   })
   it.each<[string, (d: BorradorRendicion) => void]>([
-    ['Nº', (d) => (d.nro = '4')],
     ['fondo', (d) => (d.fondo = 'FONDOS POR RENDIR')],
     ['total del formulario', (d) => (d.totalFormulario = '1.000')],
     ['respaldo guardado', (d) => d.respaldos.push('p-1/r/a.jpg')],
     ['segunda línea', (d) => d.lineas.push(lineaVacia())],
     ['proveedor', (d) => (d.lineas[0]!.proveedor = 'COPEC')],
+    ['proveedor de la lista', (d) => (d.lineas[0]!.proveedorId = 'pv-1')],
     ['monto', (d) => (d.lineas[0]!.exento = '15.000')],
     ['subcuenta', (d) => (d.lineas[0]!.subcuentaId = 8)],
   ])('con %s sí tiene datos', (_, cambiar) => {
@@ -133,9 +137,13 @@ describe('tieneDatos', () => {
     cambiar(d)
     expect(tieneDatos(d)).toBe(true)
   })
+  it('el Nº no cuenta: se llena solo al elegir el solicitante', () => {
+    const d = vacio()
+    d.nro = '4'
+    expect(tieneDatos(d)).toBe(false)
+  })
   it('espacios en blanco no cuentan', () => {
     const d = vacio()
-    d.nro = '  '
     d.lineas[0]!.detalle = ' '
     expect(tieneDatos(d)).toBe(false)
   })
@@ -147,25 +155,26 @@ describe('validarRendicion', () => {
     expect(validarRendicion(borrador(), ctxTesoreria)).toEqual([])
   })
 
-  it('exige solicitante activo, Nº y fecha', () => {
+  it('exige solicitante activo y fecha', () => {
     const p = validarRendicion(borrador({ personaId: 'otra', nro: '', fecha: '' }), ctxPersona)
-    expect(p).toEqual([
-      'Elige el solicitante de la lista.',
-      'Falta el Nº de rendición.',
-      'Falta la fecha.',
-    ])
+    expect(p).toEqual(['Elige el solicitante de la lista.', 'Falta la fecha.'])
     expect(validarRendicion(borrador({ personaId: null }), ctxPersona)).toContain(
       'Elige el solicitante de la lista.',
     )
   })
 
-  it('el Nº debe ser un entero positivo', () => {
-    for (const nro of ['4a', '0', '-3', '4.5']) {
-      expect(validarRendicion(borrador({ nro }), ctxPersona)).toContain(
-        'El Nº de rendición debe ser un número.',
-      )
-    }
-    expect(validarRendicion(borrador({ nro: ' 042 ' }), ctxPersona)).toEqual([])
+  it('Rendir gastos exige proveedor de la lista en cada línea; aprobar y el libro no', () => {
+    const d = borrador() // la línea demo trae solo el texto "ISP" (como el historial)
+    expect(validarRendicion(d, { ...ctxPersona, exigirProveedor: true })).toEqual([
+      'Línea 1: elige el proveedor.',
+    ])
+    expect(validarRendicion(d, ctxTesoreria)).toEqual([])
+    d.lineas[0]!.proveedorId = 'pv-1'
+    expect(validarRendicion(d, { ...ctxPersona, exigirProveedor: true })).toEqual([])
+  })
+
+  it('no valida el Nº: es correlativo y lo asigna el servidor', () => {
+    expect(validarRendicion(borrador({ nro: '' }), ctxPersona)).toEqual([])
   })
 
   it('cada línea necesita monto', () => {
@@ -221,6 +230,7 @@ describe('limpiarRendicion', () => {
           orden: 1,
           fecha: '2026-10-14', // hereda la fecha del formulario
           tipo: 'Boleta',
+          proveedor_id: null,
           proveedor: 'ISP',
           rut: '',
           numero: '2026101400444231',
@@ -252,5 +262,57 @@ describe('limpiarRendicion', () => {
 
   it('sin persona lanza error (debe validarse antes)', () => {
     expect(() => limpiarRendicion(borrador({ personaId: null }))).toThrow()
+  })
+})
+
+// RUT FICTICIOS (calculados con el módulo 11)
+describe('Nº de documento único por proveedor', () => {
+  const l = (rut: string, numero: string, tipo: 'Boleta' | 'Factura' = 'Boleta') =>
+    lineaVacia({ rut, numero, tipo, exento: '1.000' })
+
+  it('claveDocumento: RUT normalizado + tipo + Nº sin importar mayúsculas ni espacios', () => {
+    expect(claveDocumento(l('12.345.678-5', ' a-1 '))).toBe('12345678-5|Boleta|A-1')
+    expect(claveDocumento(l('12345678-5', ''))).toBeNull()
+    expect(claveDocumento(l('', '9'))).toBeNull()
+  })
+
+  it('repetidosEnFormulario: cada repetida apunta a la primera', () => {
+    const r = repetidosEnFormulario([
+      l('12345678-5', 'A-1'),
+      l('12.345.678-5', 'a-1'),
+      l('12345678-5', 'A-1', 'Factura'), // otro tipo: no repite
+      l('76000000-0', 'A-1'), // otro proveedor: no repite
+      l('12345678-5', 'A-1'),
+    ])
+    expect([...r]).toEqual([
+      [1, 0],
+      [4, 0],
+    ])
+  })
+
+  it('validarRendicion avisa los repetidos del formulario y los marcados por la base', () => {
+    const d: BorradorRendicion = {
+      ...borradorNuevo({ catalogos: catalogosDemo, personaFija: 'p-1', hoy: '2026-10-27' }),
+      lineas: [l('12345678-5', 'A-1'), l('12345678-5', 'A-1'), { ...l('76000000-0', 'B-2'), numeroRepetido: true }],
+    }
+    expect(validarRendicion(d, { esTesoreria: false, personasActivas: ['p-1'] })).toEqual([
+      'Línea 2: repite el Nº de documento de la línea 1.',
+      'Línea 3: este Nº de documento ya está cargado para este proveedor.',
+    ])
+  })
+})
+
+describe('IVA calculado', () => {
+  it('ivaDe: neto × 19 % redondeado al peso', () => {
+    expect(ivaDe(10000)).toBe(1900)
+    expect(ivaDe('84.034')).toBe(15966) // 15.966,46
+    expect(ivaDe('50')).toBe(10) // 9,5 sube
+    expect(ivaDe('')).toBe(0)
+  })
+  it('ivaLinea: en Factura se calcula; en el resto es vacío', () => {
+    expect(ivaLinea({ tipo: 'Factura', neto: '10.000' })).toBe('1.900')
+    expect(ivaLinea({ tipo: 'Factura', neto: '' })).toBe('')
+    expect(ivaLinea({ tipo: 'Boleta', neto: '10.000' })).toBe('')
+    expect(ivaLinea({ tipo: 'Transferencia', neto: '10.000' })).toBe('')
   })
 })

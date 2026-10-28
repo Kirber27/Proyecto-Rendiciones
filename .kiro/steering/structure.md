@@ -49,16 +49,20 @@ Proyecto-Rendiciones/
 │   │   ├── acceso.ts             reglas de contraseña (largo mínimo, repetir, distinta de la actual)
 │   │   ├── cuentaCorriente.ts    movimientos con saldo acumulado y resumen de Personas
 │   │   ├── respaldos.ts          adjuntos: tipos aceptados (imagen/PDF), tamaño máximo, escala de fotos
+│   │   ├── rut.ts                RUT chileno: normalizar, dígito verificador, formato
+│   │   ├── proveedores.ts        validar alta/edición, búsqueda, columnas y vista previa del Excel
 │   │   └── __tests__/
-│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS), pdf.ts (jsPDF + pdf-lib)
-│   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas
-│   ├── composables/              useTheme, useMediaQuery, useConfirm, useSignedUrl…
+│   ├── services/                 acceso a Supabase (queries y RPC), uno por entidad; excel.ts (SheetJS: escribir el libro y leer hojas), pdf.ts (jsPDF + pdf-lib)
+│   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas, proveedores
+│   ├── composables/              useTheme, useMediaQuery, useDocumentoRepetido…
 │   ├── components/
-│   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, ConfirmInline, MoneyInput
+│   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, AppModal, MoneyInput
 │   │   ├── layout/               AppHeader, AppTabs, ThemeToggle
-│   │   └── rendicion/            RespaldosDrop, RespaldosGrid, RendicionEditor, DatosFormulario, LineasTable, CuadreTotales, LineaTiempo
+│   │   ├── proveedores/          ProveedorForm, ImportarProveedores
+│   │   └── rendicion/            RespaldosDrop, RespaldosGrid, RendicionEditor, DatosFormulario, LineasTable, ProveedorSelect, NuevaSubcuenta, CuadreTotales, LineaTiempo
 │   ├── views/                    una por pantalla (LoginView, CambiarClaveView, RendirView, CarpetasView,
-│   │                             PorAprobarView, LibroView, PersonasView, BancoView, PerfilesView)
+│   │                             PorAprobarView, LibroView, PersonasView, BancoView, PerfilesView,
+│   │                             ProveedoresView)
 │   ├── router/index.ts
 │   ├── types/                    tipos de dominio (rendicion, catalogos, roles, …)
 │   └── dev/                      solo desarrollo: datos de demo (catálogos con personas ficticias)

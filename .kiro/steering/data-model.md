@@ -76,8 +76,10 @@ rendiciones
 rendicion_lineas
   id uuid pk, rendicion_id → rendiciones on delete cascade, orden smallint,
   fecha date, tipo tipo_documento, proveedor text, rut text, numero text,
+  proveedor_id uuid → proveedores,   -- vínculo (spec 11); proveedor/rut quedan como se rindieron
   neto numeric(14,2) default 0, iva numeric(14,2) default 0,
-  exento numeric(14,2) default 0, otros numeric(14,2) default 0,
+  exento numeric(14,2) default 0,
+  otros numeric(14,2) default 0,     -- "Imp. especial" en el formulario (spec 11); suma al total
   detalle text, subcuenta_id → subcuentas, cuenta_id → cuentas, centro_costo_id → centros_costo
 
 rendicion_eventos              -- línea de tiempo / auditoría (solo insert)
@@ -92,6 +94,19 @@ respaldos
   mime text,                    -- image/jpeg | application/pdf (según la extensión)
   orden smallint, creado_en
 ```
+
+## Proveedores (spec 11)
+
+```
+proveedores
+  id uuid pk, nombre text not null,
+  rut text not null unique,      -- normalizado 12345678-5 (rut_valido + normalizar_rut)
+  creado_por uuid → auth.users,  -- null en los precargados
+  creado_en timestamptz, eliminado_en timestamptz
+```
+
+- Helpers SQL: `normalizar_rut(text)` y `rut_valido(text)` (módulo 11), iguales a `src/domain/rut.ts`.
+- Precarga (migración `…0019`, `_precargar_proveedores()`): un proveedor por RUT válido de las líneas, con el nombre más usado, y vínculo de esas líneas. El historial 2026 no trae RUT ni proveedor, así que solo aporta lo enviado desde la app.
 
 ## Pagos y banco
 
@@ -126,6 +141,7 @@ cartola_movimientos
 | catálogos | autenticado | `es_admin()` |
 | `personas` | autenticado (todas las activas; las eliminadas solo tesorería) | `es_admin()` (vía RPC para funciones) |
 | `rendiciones`, `rendicion_lineas`, `respaldos`, `rendicion_eventos` | dueño (`persona_id = mi_persona_id()`) o `es_tesoreria()` | **solo vía RPC** |
+| `proveedores` | autenticado (activos; los eliminados solo tesorería) | **solo vía RPC** |
 | `pagos`, `pago_rendiciones` | dueño o `es_tesoreria()` | `es_tesoreria()` vía RPC |
 | `cartolas`, `cartola_movimientos` | `es_tesoreria()` | `es_tesoreria()` |
 | Storage `respaldos` (imágenes y PDF, 10 MB) | dueño de la carpeta `<persona_id>/…` o tesorería | subir: dueño en su carpeta; borrar: tesorería |
@@ -134,16 +150,23 @@ cartola_movimientos
 
 | Función | Quién | Efecto |
 | --- | --- | --- |
-| `enviar_rendicion(p jsonb)` | solicitante (o tesorería por otro) | Crea o reemplaza (si está `en_revision`/`observada` y es suya) cabecera + líneas + respaldos (`.jpg`/`.pdf`; exige al menos uno). Evento Enviada/Reenviada. Observada → en_revision. |
-| `aprobar_rendicion(id, p jsonb)` | tesorería | Guarda las correcciones, exige subcuenta/cuenta, asigna folio si no tiene, estado aprobada. |
+| `siguiente_nro(persona)` | la persona (la suya) o tesorería | Mayor Nº de la persona + 1 (para mostrarlo en el formulario). |
+| `enviar_rendicion(p jsonb)` | solicitante (o tesorería por otro) | Crea o reemplaza (si está `en_revision`/`observada` y es suya) cabecera + líneas + respaldos (`.jpg`/`.pdf`; exige al menos uno). Asigna el Nº correlativo a las nuevas (ignora el del payload). Exige proveedor activo de la lista en cada línea. Evento Enviada/Reenviada. Observada → en_revision. |
+| `aprobar_rendicion(id, p jsonb)` | tesorería | Guarda las correcciones, exige subcuenta/cuenta, asigna folio si no tiene, estado aprobada. Conserva el Nº (nuevo correlativo solo si cambia la persona). |
 | `observar_rendicion(id, nota)` / `rechazar_rendicion(id, nota)` | tesorería | Nota obligatoria. |
 | `anular_aprobacion(id, nota)` | tesorería | aprobada → en_revision, `aprobacion_anulada = true`, conserva folio. |
-| `editar_rendicion(id, p jsonb)` | tesorería | Edición en el libro. Evento "Editada por tesorería". |
+| `editar_rendicion(id, p jsonb)` | tesorería | Edición en el libro (conserva el Nº; nuevo correlativo solo si cambia la persona). Evento "Editada por tesorería". |
 | `eliminar_rendicion(id, nota)` / `restaurar_rendicion(id)` | tesorería | Soft delete. |
 | `registrar_pago(p jsonb)` | tesorería | Pago/anticipo/devolución + vínculos. |
 | `confirmar_conciliacion(p jsonb)` | tesorería | Lote de propuestas aceptadas → pagos con `movimiento_id`. |
 | `asignar_rol(persona_id, rol)` | admin | Garantiza un solo tesorero. |
 | `marcar_exportadas(ids uuid[])` | tesorería | `exportada = true`. |
+| `crear_subcuenta(nombre, cuenta)` | tesorería | Subcuenta nueva (nombre limpio, sin duplicados por `normalizar`), al final del orden. |
+| `documento_repetido(rut, tipo, numero, excluir)` | cualquiera | Sí/no: el documento ya está en otra rendición no eliminada ni rechazada (no expone datos ajenos). |
+| `crear_proveedor(nombre, rut)` | cualquiera con persona | Valida RUT (DV) y que no exista; guarda nombre limpio y RUT normalizado. |
+| `editar_proveedor(id, nombre, rut)` | tesorería | Corrige nombre/RUT (las líneas guardadas no cambian). |
+| `eliminar_proveedor(id, eliminar = true)` | tesorería | Soft delete (`eliminar = false` restaura). |
+| `importar_proveedores(filas jsonb)` | tesorería | Agrega solo los nuevos válidos (no pisa existentes); devuelve cuántos. |
 
 ## Vistas
 

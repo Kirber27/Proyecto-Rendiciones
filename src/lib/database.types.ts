@@ -319,6 +319,33 @@ export type Database = {
         }
         Relationships: []
       }
+      proveedores: {
+        Row: {
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          nombre: string
+          rut: string
+        }
+        Insert: {
+          creado_en?: string
+          creado_por?: string | null
+          eliminado_en?: string | null
+          id?: string
+          nombre: string
+          rut: string
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string | null
+          eliminado_en?: string | null
+          id?: string
+          nombre?: string
+          rut?: string
+        }
+        Relationships: []
+      }
       rendicion_eventos: {
         Row: {
           actor: string | null
@@ -375,6 +402,7 @@ export type Database = {
           orden: number
           otros: number
           proveedor: string
+          proveedor_id: string | null
           rendicion_id: string
           rut: string
           subcuenta_id: number | null
@@ -393,6 +421,7 @@ export type Database = {
           orden?: number
           otros?: number
           proveedor?: string
+          proveedor_id?: string | null
           rendicion_id: string
           rut?: string
           subcuenta_id?: number | null
@@ -411,6 +440,7 @@ export type Database = {
           orden?: number
           otros?: number
           proveedor?: string
+          proveedor_id?: string | null
           rendicion_id?: string
           rut?: string
           subcuenta_id?: number | null
@@ -429,6 +459,13 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rendicion_lineas_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
             referencedColumns: ["id"]
           },
           {
@@ -673,10 +710,21 @@ export type Database = {
       _clp: { Args: { n: number }; Returns: string }
       _exigir_admin: { Args: never; Returns: undefined }
       _exigir_tesoreria: { Args: never; Returns: undefined }
+      _clave_documento: {
+        Args: {
+          p_numero: string
+          p_rut: string
+          p_tipo: Database["public"]["Enums"]["tipo_documento"]
+        }
+        Returns: string
+      }
+      _nombre_proveedor: { Args: { t: string }; Returns: string }
+      _precargar_proveedores: { Args: never; Returns: number }
       _reemplazar_lineas: {
         Args: { p_fecha: string; p_lineas: Json; p_rendicion_id: string }
         Returns: undefined
       }
+      _siguiente_nro: { Args: { p_persona: string }; Returns: number }
       _tomar_cargo: {
         Args: { p_id: string }
         Returns: {
@@ -767,6 +815,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _validar_proveedor: {
+        Args: { p_excluir?: string; p_nombre: string; p_rut: string }
+        Returns: string
+      }
       _vincular_por_correo: {
         Args: { p_persona_id: string }
         Returns: undefined
@@ -787,9 +839,68 @@ export type Database = {
         Returns: string
       }
       confirmar_conciliacion: { Args: { p: Json }; Returns: number }
+      crear_proveedor: {
+        Args: { p_nombre: string; p_rut: string }
+        Returns: {
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          nombre: string
+          rut: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "proveedores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crear_subcuenta: {
+        Args: { p_cuenta?: number; p_nombre: string }
+        Returns: {
+          activa: boolean
+          cuenta_sugerida_id: number | null
+          id: number
+          nombre: string
+          orden: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subcuentas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       deshacer_asignacion: {
         Args: { p_movimiento_id: string }
         Returns: undefined
+      }
+      documento_repetido: {
+        Args: {
+          p_excluir?: string
+          p_numero: string
+          p_rut: string
+          p_tipo: Database["public"]["Enums"]["tipo_documento"]
+        }
+        Returns: boolean
+      }
+      editar_proveedor: {
+        Args: { p_id: string; p_nombre: string; p_rut: string }
+        Returns: {
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          nombre: string
+          rut: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "proveedores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       editar_rendicion: {
         Args: { p: Json; p_id: string; p_version: string }
@@ -798,6 +909,10 @@ export type Database = {
       eliminar_cartola: { Args: { p_id: string }; Returns: number }
       eliminar_pago: { Args: { p_id: string }; Returns: undefined }
       eliminar_persona: { Args: { p_persona_id: string }; Returns: undefined }
+      eliminar_proveedor: {
+        Args: { p_eliminar?: boolean; p_id: string }
+        Returns: undefined
+      }
       eliminar_rendicion: {
         Args: { p_id: string; p_nota?: string }
         Returns: undefined
@@ -816,6 +931,7 @@ export type Database = {
         Args: { p_id: string; p_valor: boolean }
         Returns: undefined
       }
+      importar_proveedores: { Args: { p_filas: Json }; Returns: number }
       listar_cuentas: {
         Args: never
         Returns: {
@@ -830,6 +946,7 @@ export type Database = {
       mi_persona_id: { Args: never; Returns: string }
       mi_rol: { Args: never; Returns: Database["public"]["Enums"]["rol_app"] }
       normalizar: { Args: { t: string }; Returns: string }
+      normalizar_rut: { Args: { t: string }; Returns: string }
       observar_rendicion: {
         Args: { p_id: string; p_nota: string; p_version: string }
         Returns: undefined
@@ -844,6 +961,8 @@ export type Database = {
         Args: { p_id: string }
         Returns: Database["public"]["Enums"]["estado_rendicion"]
       }
+      rut_valido: { Args: { t: string }; Returns: boolean }
+      siguiente_nro: { Args: { p_persona: string }; Returns: number }
       vincular_cuenta: {
         Args: { p_persona_id: string; p_user_id: string }
         Returns: undefined
