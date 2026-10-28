@@ -707,9 +707,6 @@ export type Database = {
       }
     }
     Functions: {
-      _clp: { Args: { n: number }; Returns: string }
-      _exigir_admin: { Args: never; Returns: undefined }
-      _exigir_tesoreria: { Args: never; Returns: undefined }
       _clave_documento: {
         Args: {
           p_numero: string
@@ -718,6 +715,9 @@ export type Database = {
         }
         Returns: string
       }
+      _clp: { Args: { n: number }; Returns: string }
+      _exigir_admin: { Args: never; Returns: undefined }
+      _exigir_tesoreria: { Args: never; Returns: undefined }
       _nombre_proveedor: { Args: { t: string }; Returns: string }
       _precargar_proveedores: { Args: never; Returns: number }
       _reemplazar_lineas: {

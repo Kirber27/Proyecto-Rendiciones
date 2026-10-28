@@ -149,9 +149,10 @@ describe('RendicionEditor', () => {
 
   it('si no se puede consultar el Nº, queda vacío (lo asigna el servidor al enviar)', async () => {
     siguienteNro.mockRejectedValueOnce(new Error('sin red'))
-    const { borrador } = montarEditor('persona', { nro: '42' })
+    const { w, borrador } = montarEditor('persona', { nro: '42' })
     await flushPromises()
     expect(borrador.value.nro).toBe('')
+    expect(w.find('input.mono[readonly]').attributes('placeholder')).toBe('Se asigna al enviar')
   })
 
   it('el solicitante fijo no se puede cambiar', () => {

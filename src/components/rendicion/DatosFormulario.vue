@@ -11,6 +11,8 @@ defineProps<{
   catalogos: Catalogos
   /** El solicitante queda fijo (persona vinculada que no es tesorería). */
   solicitanteFijo?: boolean
+  /** Consulta del Nº correlativo: en curso o sin respuesta (el Nº lo asigna igual el servidor). */
+  estadoNro?: 'consultando' | 'sin-respuesta' | null
 }>()
 
 const id = useId()
@@ -42,7 +44,15 @@ const id = useId()
             :value="d.nro"
             class="form-control mono bg-body-tertiary"
             readonly
-            :placeholder="d.personaId ? '…' : 'Elige el solicitante'"
+            :placeholder="
+              !d.personaId
+                ? 'Elige el solicitante'
+                : estadoNro === 'sin-respuesta'
+                  ? 'Se asigna al enviar'
+                  : estadoNro === 'consultando'
+                    ? 'Buscando…'
+                    : ''
+            "
             title="Correlativo de la persona: se asigna solo"
           />
         </div>

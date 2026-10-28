@@ -4,7 +4,7 @@
 //   aprobar → Por aprobar · libro → edición en el libro (con Cuenta y C.C.)
 // Los botones los pone cada pantalla en el slot #acciones; Rendir gastos pone en #respaldos la zona
 // para adjuntar (por defecto se muestran los respaldos, si hay).
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { centroCostoDeEmpresa } from '@/domain/catalogos'
 import { lineaVacia, sumaLineas, totalFormularioDe } from '@/domain/rendicion'
 import { siguienteNro } from '@/services/rendiciones'
@@ -39,6 +39,8 @@ const totalFormulario = computed(() => totalFormularioDe(d.value))
 // la persona; si no, se muestra el siguiente de la persona elegida (el servidor lo confirma al guardar).
 let original: { personaId: string | null; nro: string } | null = null
 let consulta = 0
+/** Estado de la consulta del Nº, para el texto del campo mientras está vacío. */
+const estadoNro = ref<'consultando' | 'sin-respuesta' | null>(null)
 watch(
   () => [d.value, d.value.personaId] as const,
   async ([borrador, personaId], antes) => {
@@ -46,17 +48,23 @@ watch(
       original = borrador.id ? { personaId: borrador.personaId, nro: borrador.nro } : null
     }
     const yo = ++consulta
+    estadoNro.value = null
     if (original && personaId === original.personaId) {
       borrador.nro = original.nro
       return
     }
     borrador.nro = ''
     if (!personaId) return
+    estadoNro.value = 'consultando'
     try {
       const nro = await siguienteNro(personaId)
-      if (yo === consulta) borrador.nro = String(nro)
+      if (yo === consulta) {
+        borrador.nro = String(nro)
+        estadoNro.value = null
+      }
     } catch {
       // Sin el Nº a la vista igual se puede enviar: lo asigna el servidor.
+      if (yo === consulta) estadoNro.value = 'sin-respuesta'
     }
   },
   { immediate: true },
@@ -74,7 +82,12 @@ function agregarLinea() {
 
 <template>
   <div class="d-flex flex-column gap-3">
-    <DatosFormulario v-model="d" :catalogos="catalogos" :solicitante-fijo="solicitanteFijo" />
+    <DatosFormulario
+      v-model="d"
+      :catalogos="catalogos"
+      :solicitante-fijo="solicitanteFijo"
+      :estado-nro="estadoNro"
+    />
 
     <section class="card">
       <div class="card-body d-flex flex-column gap-3">
