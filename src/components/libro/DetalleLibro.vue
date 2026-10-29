@@ -189,9 +189,6 @@ async function descargarPdf() {
         >
           Restaurar
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" @click="emit('cerrar')">
-          Cerrar
-        </button>
       </div>
     </div>
 

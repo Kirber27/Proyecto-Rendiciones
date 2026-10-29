@@ -15,6 +15,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 09 | Despliegue (abajo) | todo | ⬜ |
 | 10 | [Ingreso con contraseña](10-ingreso-con-contrasena/) — correo + contraseña, cuentas y contraseñas temporales desde Perfiles, sin correos | 01, 08 | 🟡 Implementado (10.5: configurar el panel de Supabase y probar) |
 | 11 | [Ajustes del cliente](11-ajustes-cliente/) — Nº correlativo (y Nº faltantes), proveedores con RUT, Nº doc. único, IVA calculado, impuesto especial, nueva subcuenta, KPIs y Excel de la búsqueda | 02, 04 | 🟡 Implementado (11.1–11.10; 11.12 Nº faltantes; 11.11: push de migraciones 0018–0023 y prueba en producción) |
+| 12 | [Ajustes de UI](12-ajustes-ui/) — gastos en colapsables, botones de 48 px, libro con orden por columna, paginación de 15 y detalle en su propia vista | 02, 04, 11 | 🟡 Implementado (12.1–12.5; 12.6: probar en el navegador) |
 
 **Hito 1 (MVP solicitante + aprobación):** 01 → 08.3/8.5 (cargar correos) → 02 → 03.
 **Hito 2 (reemplaza al prototipo):** 04 → 05 → 06 → 07 → resto de 08.

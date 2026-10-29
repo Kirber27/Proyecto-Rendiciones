@@ -2,7 +2,7 @@
 // Selector de proveedor con búsqueda (combobox accesible) para las líneas de gasto (spec 11, R2.7–R2.9).
 // Muestra el elegido; al escribir filtra por nombre o RUT. Al final ofrece agregar uno nuevo en un
 // modal sin salir del formulario. La lista se dibuja en <body> con posición fija para que no la
-// recorte el scroll horizontal de la tabla.
+// recorte el contenedor del formulario.
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import ProveedorForm from '@/components/proveedores/ProveedorForm.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -18,6 +18,8 @@ const props = defineProps<{
   texto: string
   etiqueta: string
   chico?: boolean
+  /** Id del campo, para enlazarlo con su <label>. */
+  inputId?: string
 }>()
 const emit = defineEmits<{ elegir: [p: Proveedor] }>()
 
@@ -124,6 +126,7 @@ function creado(p: Proveedor) {
 
 <template>
   <input
+    :id="inputId"
     ref="input"
     :class="['form-control', chico && 'form-control-sm']"
     role="combobox"

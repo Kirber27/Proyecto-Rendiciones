@@ -8,6 +8,17 @@
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
+// Botones: 48 px de alto en todos los tamaños; el ancho sigue al texto (spec 12, R2).
+// min-height (no height) para que un texto en dos líneas no se corte en el celular.
+// btn-link queda fuera: se ve como enlace (título de tarjeta, "¿Olvidaste tu contraseña?").
+.btn:not(.btn-link) {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
 // Encabezado
 .app-header {
   background: var(--app-surface);
@@ -111,6 +122,15 @@ tr:focus-visible,
     white-space: nowrap;
     padding: 8px;
   }
+  // Encabezados destacados con el color de los botones primarios (claro: azul y blanco;
+  // oscuro: azul claro y tinta oscura, igual que btn-primary).
+  > thead th {
+    --bs-table-bg: var(--bs-primary);
+    --bs-table-color: var(--app-accent-ink);
+    --bs-table-bg-state: initial;
+    color: var(--app-accent-ink);
+    border-bottom-color: var(--bs-primary);
+  }
   td {
     vertical-align: top;
   }
@@ -133,6 +153,44 @@ tr:focus-visible,
 }
 .table-click tbody tr {
   cursor: pointer;
+}
+// Separadores verticales entre columnas (spec 12, R3.1)
+.table-cols {
+  th + th,
+  td + td {
+    border-left: 1px solid var(--bs-border-color);
+  }
+  // Sobre el encabezado azul, el separador va en el color del texto, tenue.
+  > thead th + th {
+    border-left-color: color-mix(in srgb, var(--app-accent-ink) 30%, transparent);
+  }
+}
+// Encabezado ordenable (ThOrden): botón que ocupa la celda, ícono tenue si no está ordenado
+.th-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+
+  &:hover {
+    text-decoration: underline;
+  }
+  .bi {
+    font-size: 12px;
+  }
+  .th-orden-off {
+    opacity: 0.6;
+  }
+}
+th.n .th-orden {
+  justify-content: flex-end;
 }
 
 // Chips de estado

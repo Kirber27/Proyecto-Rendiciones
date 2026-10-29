@@ -8,7 +8,9 @@ import {
   ivaDe,
   ivaLinea,
   lineaVacia,
+  gastosConProblemas,
   limpiarRendicion,
+  lineaConDatos,
   repetidosEnFormulario,
   sumaLineas,
   tieneDatos,
@@ -166,7 +168,7 @@ describe('validarRendicion', () => {
   it('Rendir gastos exige proveedor de la lista en cada línea; aprobar y el libro no', () => {
     const d = borrador() // la línea demo trae solo el texto "ISP" (como el historial)
     expect(validarRendicion(d, { ...ctxPersona, exigirProveedor: true })).toEqual([
-      'Línea 1: elige el proveedor.',
+      'Gasto 1: elige el proveedor.',
     ])
     expect(validarRendicion(d, ctxTesoreria)).toEqual([])
     d.lineas[0]!.proveedorId = 'pv-1'
@@ -180,7 +182,7 @@ describe('validarRendicion', () => {
   it('cada línea necesita monto', () => {
     const d = borrador({ totalFormulario: '' })
     d.lineas.push(lineaVacia())
-    expect(validarRendicion(d, ctxPersona)).toEqual(['Línea 2: falta el monto.'])
+    expect(validarRendicion(d, ctxPersona)).toEqual(['Gasto 2: falta el monto.'])
   })
 
   it('sin líneas no se puede enviar', () => {
@@ -195,8 +197,8 @@ describe('validarRendicion', () => {
     d.lineas[0]!.cuentaId = null
     expect(validarRendicion(d, ctxPersona)).toEqual([])
     expect(validarRendicion(d, ctxTesoreria)).toEqual([
-      'Línea 1: elige la subcuenta.',
-      'Línea 1: elige la cuenta.',
+      'Gasto 1: elige la subcuenta.',
+      'Gasto 1: elige la cuenta.',
     ])
   })
 
@@ -305,8 +307,8 @@ describe('Nº de documento único por proveedor', () => {
       lineas: [l('12345678-5', 'A-1'), l('12345678-5', 'A-1'), { ...l('76000000-0', 'B-2'), numeroRepetido: true }],
     }
     expect(validarRendicion(d, { esTesoreria: false, personasActivas: ['p-1'] })).toEqual([
-      'Línea 2: repite el Nº de documento de la línea 1.',
-      'Línea 3: este Nº de documento ya está cargado para este proveedor.',
+      'Gasto 2: repite el Nº de documento del gasto 1.',
+      'Gasto 3: este Nº de documento ya está cargado para este proveedor.',
     ])
   })
 })
@@ -323,5 +325,19 @@ describe('IVA calculado', () => {
     expect(ivaLinea({ tipo: 'Factura', neto: '' })).toBe('')
     expect(ivaLinea({ tipo: 'Boleta', neto: '10.000' })).toBe('')
     expect(ivaLinea({ tipo: 'Transferencia', neto: '10.000' })).toBe('')
+  })
+})
+
+describe('gastos con problemas', () => {
+  it('gastosConProblemas: índices de los mensajes "Gasto N: …"', () => {
+    expect([...gastosConProblemas(['Falta la fecha.', 'Gasto 2: falta el monto.', 'Gasto 2: elige la cuenta.', 'Gasto 10: x'])]).toEqual([1, 9])
+    expect(gastosConProblemas([]).size).toBe(0)
+  })
+
+  it('lineaConDatos: vacía no; con monto, proveedor o detalle sí', () => {
+    expect(lineaConDatos(lineaVacia())).toBe(false)
+    expect(lineaConDatos(lineaVacia({ exento: '1.000' }))).toBe(true)
+    expect(lineaConDatos(lineaVacia({ proveedor: 'ISP' }))).toBe(true)
+    expect(lineaConDatos(lineaVacia({ detalle: 'peaje' }))).toBe(true)
   })
 })

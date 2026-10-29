@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
     meta: { roles: SOLO_TESORERIA, pestana: { texto: 'Por aprobar', orden: 3 } },
   },
   {
-    path: '/libro',
+    path: '/libro/:id?',
     name: 'libro',
     component: () => import('@/views/LibroView.vue'),
     meta: { roles: SOLO_TESORERIA, pestana: { texto: 'Rendiciones', orden: 4 } },

@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { catalogosDemo } from '@/dev/catalogosDemo'
 import type { FilaLibro } from '@/domain/libro'
 import { lineaVacia } from '@/domain/rendicion'
@@ -105,10 +106,22 @@ const boton = (w: VueWrapper, texto: string) =>
   w.findAll('button').find((b) => b.text().includes(texto))!
 const filasTabla = (w: VueWrapper) => w.findAll('tbody tr')
 
-async function montar() {
-  const w = mount(LibroView, { attachTo: document.body })
+let router: Router
+/** Monta la vista con la ruta del libro (la tabla o /libro/<id> para el detalle). */
+async function montar(ruta = '/libro') {
+  router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/libro/:id?', name: 'libro', component: { template: '<div />' } }],
+  })
+  await router.push(ruta)
+  await router.isReady()
+  const w = mount(LibroView, { attachTo: document.body, global: { plugins: [router] } })
   await flushPromises()
   return w
+}
+async function volverAlLibro(w: VueWrapper) {
+  await boton(w, 'Volver al libro').trigger('click')
+  await flushPromises()
 }
 async function abrirFila(w: VueWrapper, folio: string) {
   await filasTabla(w)
@@ -143,6 +156,50 @@ describe('LibroView', () => {
     expect(tr[1]!.text()).toContain('Pagada')
     expect(tr[1]!.text()).toContain('—') // nada por pagar
     expect(tr[0]!.text()).toContain('Pendiente de pago')
+  })
+
+  it('ordenar por columna: asc, desc y vuelta al orden por defecto, con aria-sort', async () => {
+    const w = await montar()
+    const folios = () => filasTabla(w).map((t) => t.find('td').text())
+    const total = () => w.findAll('th').find((t) => t.text().includes('Total'))!
+    expect(w.find('table').classes()).toContain('table-cols')
+    await total().find('button').trigger('click')
+    expect(folios()).toEqual(['JPE-007', 'MSO-002', 'MSO-001'])
+    expect(total().attributes('aria-sort')).toBe('ascending')
+    expect(total().find('.bi-sort-up').exists()).toBe(true)
+    await total().find('button').trigger('click')
+    expect(folios()).toEqual(['MSO-001', 'MSO-002', 'JPE-007'])
+    expect(total().attributes('aria-sort')).toBe('descending')
+    await total().find('button').trigger('click')
+    expect(folios()).toEqual(['MSO-002', 'MSO-001', 'JPE-007'])
+    expect(total().attributes('aria-sort')).toBeUndefined()
+  })
+
+  it('paginación: 15 por página, rango, tamaño elegido y recordado', async () => {
+    localStorage.removeItem('libro:tamano')
+    const muchas = Array.from({ length: 20 }, (_, i) =>
+      fila({ id: `m${i}`, folio: `MSO-${100 + i}`, nro: 100 + i, fecha: `2026-08-${String(i + 1).padStart(2, '0')}` }),
+    )
+    srv.listarLibro.mockImplementation(async () => muchas)
+    const w = await montar()
+    expect(filasTabla(w)).toHaveLength(15)
+    expect(w.find('[data-test="rango"]').text()).toBe('1–15 de 20 rendiciones · Página 1 de 2')
+    await boton(w, 'Siguiente').trigger('click')
+    expect(filasTabla(w)).toHaveLength(5)
+    expect(w.find('[data-test="rango"]').text()).toBe('16–20 de 20 rendiciones · Página 2 de 2')
+    await w.find('nav.paginacion select').setValue('25')
+    expect(filasTabla(w)).toHaveLength(20)
+    expect(w.find('[data-test="rango"]').text()).toContain('Página 1 de 1')
+    expect(localStorage.getItem('libro:tamano')).toBe('25')
+    w.unmount()
+    const otra = await montar()
+    expect(filasTabla(otra)).toHaveLength(20)
+    localStorage.removeItem('libro:tamano')
+  })
+
+  it('con 15 o menos no muestra la paginación', async () => {
+    const w = await montar()
+    expect(w.find('nav.paginacion').exists()).toBe(false)
   })
 
   it('filtros, buscador sin tildes y filtro Eliminadas', async () => {
@@ -194,7 +251,7 @@ describe('LibroView', () => {
     await abrirFila(w, 'MSO-002')
     expect(w.text()).toContain('MSO-002 · Mario Soto · Nº 2')
     expect(w.find('.sum').text()).toContain('Saldo $ 5.000')
-    expect(w.findAll('th').map((t) => t.text())).toContain('Cuenta')
+    expect(w.findAll('.gasto label').map((t) => t.text())).toContain('Cuenta')
     await boton(w, 'Guardar cambios').trigger('click')
     await flushPromises()
     expect(srv.editarRendicion).toHaveBeenCalledWith(
@@ -206,10 +263,52 @@ describe('LibroView', () => {
     expect(srv.listarLibro).toHaveBeenCalledTimes(2)
   })
 
+  it('el detalle reemplaza a la tabla y "Volver" la devuelve con la búsqueda, el orden y la fila marcada', async () => {
+    const w = await montar()
+    await w.find('input[type="search"]').setValue('soto')
+    await w.findAll('th').find((t) => t.text().includes('Total'))!.find('button').trigger('click')
+    await abrirFila(w, 'MSO-002')
+    expect(router.currentRoute.value.fullPath).toBe('/libro/b')
+    expect(w.find('table').exists()).toBe(false)
+    expect(w.find('[data-test="kpis"]').exists()).toBe(false)
+    expect(w.text()).toContain('MSO-002 · Mario Soto · Nº 2')
+
+    await volverAlLibro(w)
+    expect(router.currentRoute.value.fullPath).toBe('/libro')
+    expect((w.find('input[type="search"]').element as HTMLInputElement).value).toBe('soto')
+    expect(filasTabla(w).map((t) => t.find('td').text())).toEqual(['MSO-002', 'MSO-001'])
+    const marcada = filasTabla(w).find((t) => t.classes().includes('fila-sel'))!
+    expect(marcada.text()).toContain('MSO-002')
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('el "atrás" del navegador vuelve a la tabla', async () => {
+    const w = await montar()
+    await abrirFila(w, 'MSO-001')
+    router.back()
+    await flushPromises()
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/libro'))
+    await flushPromises()
+    expect(w.find('table').exists()).toBe(true)
+  })
+
+  it('por dirección: abre el detalle; si la rendición no está, vuelve con aviso', async () => {
+    const w = await montar('/libro/a')
+    expect(w.text()).toContain('MSO-001 · Mario Soto')
+    await volverAlLibro(w)
+    expect(router.currentRoute.value.fullPath).toBe('/libro')
+
+    const otra = await montar('/libro/no-existe')
+    expect(router.currentRoute.value.fullPath).toBe('/libro')
+    expect(otra.find('[role="status"]').text()).toContain('Esa rendición ya no está en el libro.')
+    expect(otra.find('table').exists()).toBe(true)
+  })
+
   it('anular pide confirmación en línea; el historial no se puede anular', async () => {
     const w = await montar()
     await abrirFila(w, 'JPE-007')
     expect(boton(w, 'Anular aprobación')).toBeUndefined()
+    await volverAlLibro(w)
     await abrirFila(w, 'MSO-002')
     await boton(w, 'Anular aprobación').trigger('click')
     expect(w.text()).toContain('vuelve a Por aprobar con sus fotos')

@@ -16,8 +16,10 @@ export const FILTROS_LIBRO = [
 ] as const
 export type FiltroLibro = (typeof FILTROS_LIBRO)[number]
 
-/** Filas por página de la tabla. */
+/** Filas por página de la tabla (Proveedores, Banco). */
 export const TAMANO_PAGINA = 50
+/** Tamaños de página que se pueden elegir en el libro; el primero es el por defecto (spec 12, R4). */
+export const TAMANOS_PAGINA_LIBRO = [15, 25, 50, 100] as const
 
 export interface FilaLibro {
   id: string
@@ -61,6 +63,10 @@ export function kpisLibro(
   }
 }
 
+/** Orden por defecto del libro: fecha descendente y folio. */
+const porDefecto = (a: FilaLibro, b: FilaLibro) =>
+  (b.fecha || '').localeCompare(a.fecha || '') || b.folio.localeCompare(a.folio)
+
 /** Filtro + buscador (persona, folio o Nº exacto), por fecha descendente. */
 export function filtrarLibro(
   filas: readonly FilaLibro[],
@@ -80,14 +86,89 @@ export function filtrarLibro(
       (f) =>
         !q || norm(f.personaNombre).includes(q) || norm(f.folio).includes(q) || String(f.nro) === q,
     )
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.folio.localeCompare(a.folio))
+    .sort(porDefecto)
 }
 
-/** Una página de la lista (pagina desde 1; se ajusta si queda fuera de rango). */
+// ---------- Orden por columna (spec 12, R3) ----------
+export const COLUMNAS_LIBRO = [
+  'folio',
+  'fecha',
+  'persona',
+  'nro',
+  'total',
+  'pagado',
+  'saldo',
+  'estado',
+  'origen',
+] as const
+export type ColumnaLibro = (typeof COLUMNAS_LIBRO)[number]
+export type OrdenLibro = { columna: ColumnaLibro; dir: 'asc' | 'desc' } | null
+
+/** Clic en un encabezado: ascendente → descendente → orden por defecto. Otra columna empieza en asc. */
+export function siguienteOrden(actual: OrdenLibro, columna: ColumnaLibro): OrdenLibro {
+  if (actual?.columna !== columna) return { columna, dir: 'asc' }
+  return actual.dir === 'asc' ? { columna, dir: 'desc' } : null
+}
+
+/** Estado que muestra la tabla: el de pago, o "Eliminada". */
+const estadoMostrado = (f: FilaLibro, porRendicion: Map<string, EstadoPagoRendicion>) =>
+  f.estado === 'aprobada' ? pagoDe(porRendicion, f.id).estado : 'Eliminada'
+
+/**
+ * Copia ordenada por la columna elegida (null = orden por defecto). Texto sin tildes ni mayúsculas;
+ * pagado / por pagar de las eliminadas = 0. Empates: orden por defecto.
+ */
+export function ordenarLibro(
+  filas: readonly FilaLibro[],
+  porRendicion: Map<string, EstadoPagoRendicion>,
+  orden: OrdenLibro,
+): FilaLibro[] {
+  if (!orden) return [...filas].sort(porDefecto)
+  const pago = (f: FilaLibro) => (f.estado === 'aprobada' ? pagoDe(porRendicion, f.id) : null)
+  const valor = (f: FilaLibro): string | number => {
+    switch (orden.columna) {
+      case 'folio':
+        return norm(f.folio)
+      case 'fecha':
+        return f.fecha || ''
+      case 'persona':
+        return norm(f.personaNombre)
+      case 'nro':
+        return f.nro
+      case 'total':
+        return f.total
+      case 'pagado':
+        return pago(f)?.pagado ?? 0
+      case 'saldo':
+        return Math.max(0, pago(f)?.saldo ?? 0)
+      case 'estado':
+        return norm(estadoMostrado(f, porRendicion))
+      case 'origen':
+        return norm(f.origen)
+    }
+  }
+  const signo = orden.dir === 'asc' ? 1 : -1
+  return [...filas].sort((a, b) => {
+    const va = valor(a)
+    const vb = valor(b)
+    const c =
+      typeof va === 'number' && typeof vb === 'number'
+        ? va - vb
+        : String(va).localeCompare(String(vb), 'es')
+    return c * signo || porDefecto(a, b)
+  })
+}
+
+/**
+ * Una página de la lista (pagina desde 1; se ajusta si queda fuera de rango). `desde`/`hasta` es el
+ * rango que se muestra, contado desde 1 (0–0 si la lista está vacía).
+ */
 export function paginar<T>(lista: readonly T[], pagina: number, tamano = TAMANO_PAGINA) {
   const paginas = Math.max(1, Math.ceil(lista.length / tamano))
   const p = Math.min(Math.max(1, pagina), paginas)
-  return { items: lista.slice((p - 1) * tamano, p * tamano), pagina: p, paginas }
+  const items = lista.slice((p - 1) * tamano, p * tamano)
+  const desde = items.length ? (p - 1) * tamano + 1 : 0
+  return { items, pagina: p, paginas, desde, hasta: desde ? desde + items.length - 1 : 0 }
 }
 
 const nombre = (lista: readonly OpcionCatalogo[], id: number | null | undefined) =>

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 import MoneyInput from '@/components/ui/MoneyInput.vue'
 import { borradorDemo, catalogosDemo } from '@/dev/catalogosDemo'
+import { lineaVacia } from '@/domain/rendicion'
 import type { ModoEditor } from '@/types/rendicion'
 
 const siguienteNro = vi.hoisted(() => vi.fn())
@@ -19,7 +20,7 @@ vi.mock('@/services/catalogos', () => ({ crearSubcuenta, leerCatalogos: vi.fn() 
 // Desmontar después de cada prueba: cancela las consultas pendientes del Nº de documento.
 enableAutoUnmount(afterEach)
 
-const { default: LineasTable } = await import('./LineasTable.vue')
+const { default: LineasGastos } = await import('./LineasGastos.vue')
 const { default: RendicionEditor } = await import('./RendicionEditor.vue')
 
 beforeEach(() => {
@@ -67,7 +68,7 @@ describe('RendicionEditor', () => {
   it('modo persona oculta Cuenta y C.C.; aprobar los muestra', () => {
     const cabeceras = (modo: ModoEditor) =>
       montarEditor(modo)
-        .w.findAll('th')
+        .w.findAll('.gasto label')
         .map((t) => t.text())
     expect(cabeceras('persona')).not.toContain('Cuenta')
     expect(cabeceras('persona')).not.toContain('C.C.')
@@ -102,7 +103,7 @@ describe('RendicionEditor', () => {
 
   it('agregar línea hereda la fecha del formulario y el C.C. de la empresa', async () => {
     const { w, borrador } = montarEditor('aprobar', { fecha: '2026-10-20', empresaId: 1 })
-    const boton = w.findAll('button').find((b) => b.text().includes('Agregar línea'))!
+    const boton = w.findAll('button').find((b) => b.text().includes('Agregar gasto'))!
     await boton.trigger('click')
     const nueva = borrador.value.lineas.at(-1)!
     expect(borrador.value.lineas).toHaveLength(2)
@@ -217,10 +218,10 @@ describe('RendicionEditor', () => {
   })
 })
 
-describe('LineasTable', () => {
+describe('LineasGastos', () => {
   function montarTabla(conCuentas = true) {
     const lineas = ref(borradorDemo().lineas)
-    const w = mount(LineasTable, {
+    const w = mount(LineasGastos, {
       props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas },
     })
     return { w, lineas }
@@ -228,28 +229,40 @@ describe('LineasTable', () => {
 
   it('al elegir subcuenta propone su cuenta', async () => {
     const { w, lineas } = montarTabla()
-    await w.find('select[aria-label="Subcuenta línea 1"]').setValue('8') // Bencina
+    await w.find('select[aria-label="Subcuenta gasto 1"]').setValue('8') // Bencina
     expect(lineas.value[0]!.subcuentaId).toBe(8)
     expect(lineas.value[0]!.cuentaId).toBe(2) // Operacionales
   })
 
   it('una subcuenta sin sugerencia no cambia la cuenta', async () => {
     const { w, lineas } = montarTabla()
-    await w.find('select[aria-label="Subcuenta línea 1"]').setValue('41') // TAG, sin sugerencia
+    await w.find('select[aria-label="Subcuenta gasto 1"]').setValue('41') // TAG, sin sugerencia
     expect(lineas.value[0]!.cuentaId).toBe(9)
   })
 
   it('el total de la línea se recalcula al editar', async () => {
     const { w } = montarTabla()
-    await w.find('input[aria-label="Neto línea 1"]').setValue('10.000')
-    expect(w.find('td.n').text()).toBe('$ 80.389')
+    await w.find('input[aria-label="Monto gasto 1"]').setValue('80.389')
+    expect(w.find('.gasto-total').text()).toBe('$ 80.389')
   })
 
-  it('quitar la única línea deja una vacía', async () => {
+  it('quitar un gasto con datos pide confirmación; quitar el único deja uno vacío', async () => {
     const { w, lineas } = montarTabla()
-    await w.find('button[aria-label="Quitar línea 1"]').trigger('click')
+    await w.find('button[aria-label="Quitar gasto 1"]').trigger('click')
+    expect(w.text()).toContain('¿Quitar el gasto 1?')
+    expect(lineas.value[0]!.proveedor).toBe('ISP')
+    const boton = (texto: string) => w.findAll('.gasto button').find((b) => b.text() === texto)!
+    await boton('Cancelar').trigger('click')
+    expect(w.text()).not.toContain('¿Quitar el gasto 1?')
+    await w.find('button[aria-label="Quitar gasto 1"]').trigger('click')
+    await boton('Quitar').trigger('click')
     expect(lineas.value).toHaveLength(1)
     expect(lineas.value[0]!.proveedor).toBe('')
+    // Un gasto vacío se quita sin preguntar
+    lineas.value.push(lineaVacia())
+    await nextTick()
+    await w.find('button[aria-label="Quitar gasto 2"]').trigger('click')
+    expect(lineas.value).toHaveLength(1)
   })
 
   describe('proveedor', () => {
@@ -259,12 +272,12 @@ describe('LineasTable', () => {
     })
     async function abrir() {
       const lineas = ref(borradorDemo().lineas)
-      const w = mount(LineasTable, {
+      const w = mount(LineasGastos, {
         props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: false },
         attachTo: document.body,
       })
       await flushPromises()
-      const input = w.find('input[aria-label="Proveedor línea 1"]')
+      const input = w.find('input[aria-label="Proveedor gasto 1"]')
       await input.trigger('focus')
       return { w, lineas, input }
     }
@@ -277,13 +290,13 @@ describe('LineasTable', () => {
       const { w } = await abrir()
       w.unmount()
       const lineas = ref(borradorDemo().lineas)
-      const otra = mount(LineasTable, {
+      const otra = mount(LineasGastos, {
         props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: false },
       })
       await flushPromises()
-      const prov = otra.find('input[aria-label="Proveedor línea 1"]')
+      const prov = otra.find('input[aria-label="Proveedor gasto 1"]')
       expect((prov.element as HTMLInputElement).value).toBe('ISP (sin registrar)')
-      expect(otra.find('input[aria-label="RUT línea 1"]').attributes('readonly')).toBeDefined()
+      expect(otra.find('input[aria-label="RUT gasto 1"]').attributes('readonly')).toBeDefined()
     })
 
     it('lista los activos ordenados, busca por RUT y al elegir completa nombre y RUT', async () => {
@@ -303,7 +316,7 @@ describe('LineasTable', () => {
         proveedor: 'Ferretería Uno',
         rut: '12345678-5',
       })
-      expect((w.find('input[aria-label="RUT línea 1"]').element as HTMLInputElement).value).toBe(
+      expect((w.find('input[aria-label="RUT gasto 1"]').element as HTMLInputElement).value).toBe(
         '12.345.678-5',
       )
       expect(document.querySelector('[role="listbox"]')).toBeNull()
@@ -347,11 +360,11 @@ describe('LineasTable', () => {
 
   it('impuesto especial: columna opcional después de Exento que suma al total', async () => {
     const { w, lineas } = montarTabla()
-    const cabeceras = w.findAll('th').map((t) => t.text())
-    expect(cabeceras.indexOf('Imp. especial')).toBe(cabeceras.indexOf('Exento / monto') + 1)
-    await w.find('input[aria-label="Impuesto especial línea 1"]').setValue('1.500')
+    const etiquetas = w.findAll('.gasto label').map((t) => t.text())
+    expect(etiquetas.indexOf('Imp. especial')).toBe(etiquetas.indexOf('Monto') + 1)
+    await w.find('input[aria-label="Impuesto especial gasto 1"]').setValue('1.500')
     expect(lineas.value[0]!.otros).toBe('1.500')
-    expect(w.find('td.n').text()).toBe('$ 71.889')
+    expect(w.find('.gasto-total').text()).toBe('$ 71.889')
   })
 
   describe('nueva subcuenta', () => {
@@ -360,13 +373,13 @@ describe('LineasTable', () => {
     })
     function montarSub(puedeCrearSubcuenta: boolean) {
       const lineas = ref(borradorDemo().lineas)
-      const w = mount(LineasTable, {
+      const w = mount(LineasGastos, {
         props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: true, puedeCrearSubcuenta },
         attachTo: document.body,
       })
       return { w, lineas }
     }
-    const selector = (w: ReturnType<typeof mount>) => w.find('select[aria-label="Subcuenta línea 1"]')
+    const selector = (w: ReturnType<typeof mount>) => w.find('select[aria-label="Subcuenta gasto 1"]')
     const dialogo = () => document.querySelector('[role="dialog"]')
     async function escribirNombre(nombre: string) {
       const input = dialogo()!.querySelector('input')!
@@ -425,12 +438,12 @@ describe('LineasTable', () => {
       borradorDemo().lineas.map((l) => ({ ...l, tipo: 'Factura' as const, neto: '1.000', iva: '191', exento: '' }))
     const montarFactura = () => {
       const lineas = ref(factura())
-      const w = mount(LineasTable, {
+      const w = mount(LineasGastos, {
         props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: false },
       })
       return { w, lineas }
     }
-    const iva = (w: ReturnType<typeof mount>) => w.find('input[aria-label="IVA línea 1"]')
+    const iva = (w: ReturnType<typeof mount>) => w.find('input[aria-label="IVA gasto 1"]')
 
     it('es de solo lectura y una línea guardada conserva el suyo mientras no se toque', () => {
       const { w, lineas } = montarFactura()
@@ -440,15 +453,15 @@ describe('LineasTable', () => {
 
     it('se recalcula al escribir el neto', async () => {
       const { w, lineas } = montarFactura()
-      await w.find('input[aria-label="Neto línea 1"]').setValue('84.034')
+      await w.find('input[aria-label="Neto gasto 1"]').setValue('84.034')
       expect(lineas.value[0]!.iva).toBe('15.966')
       expect((iva(w).element as HTMLInputElement).value).toBe('15.966')
-      expect(w.find('td.n').text()).toBe('$ 100.000')
+      expect(w.find('.gasto-total').text()).toBe('$ 100.000')
     })
 
     it('al pasar a Boleta queda en 0; al volver a Factura se recalcula', async () => {
       const { w, lineas } = montarFactura()
-      const tipo = w.find('select[aria-label="Tipo línea 1"]')
+      const tipo = w.find('select[aria-label="Tipo gasto 1"]')
       await tipo.setValue('Boleta')
       expect(lineas.value[0]).toMatchObject({ tipo: 'Boleta', iva: '' })
       await tipo.setValue('Factura')
@@ -465,7 +478,7 @@ describe('LineasTable', () => {
 
     function montarCon(lineasIniciales: ReturnType<typeof borradorDemo>['lineas'], rendicionId?: string) {
       const lineas = ref(lineasIniciales)
-      const w = mount(LineasTable, {
+      const w = mount(LineasGastos, {
         props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: false, rendicionId },
       })
       return { w, lineas }
@@ -476,7 +489,7 @@ describe('LineasTable', () => {
       await vi.advanceTimersByTimeAsync(400)
       await flushPromises()
     }
-    const doc = (w: ReturnType<typeof mount>) => w.find('input[aria-label="Nº documento línea 1"]')
+    const doc = (w: ReturnType<typeof mount>) => w.find('input[aria-label="Nº documento gasto 1"]')
 
     it('formulario nuevo: consulta la base y marca en rojo si ya está cargado', async () => {
       documentoRepetido.mockResolvedValue(true)
@@ -518,29 +531,82 @@ describe('LineasTable', () => {
       const lineas = [...conDoc('A-1'), ...conDoc('a-1')]
       const { w } = montarCon(lineas, 'r-1')
       await esperar()
-      const segunda = w.find('input[aria-label="Nº documento línea 2"]')
+      const segunda = w.find('input[aria-label="Nº documento gasto 2"]')
       expect(segunda.classes()).toContain('is-invalid')
-      expect(w.find('.invalid-feedback').text()).toBe('Repite el Nº de la línea 1.')
+      expect(w.find('.invalid-feedback').text()).toBe('Repite el Nº del gasto 1.')
       expect(doc(w).classes()).not.toContain('is-invalid')
     })
   })
 
-  describe('en el celular', () => {
-    afterEach(() => vi.unstubAllGlobals())
+  describe('colapsables', () => {
+    const cuerpo = (w: ReturnType<typeof mount>, n: number) =>
+      w.findAll<HTMLElement>('.accordion-body')[n]!.element.style.display !== 'none'
+    const titulo = (w: ReturnType<typeof mount>, n: number) =>
+      w.findAll('.accordion-button')[n]!
 
-    it('muestra tarjetas con "Monto" en vez de neto/IVA para boletas', async () => {
-      vi.stubGlobal(
-        'matchMedia',
-        vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
-      )
-      const { w } = montarTabla(false)
-      await nextTick()
+    it('título "Gasto N · Proveedor" con el total; sin proveedor lo dice', () => {
+      const lineas = ref([borradorDemo().lineas[0]!, lineaVacia()])
+      const w = mount(LineasGastos, {
+        props: { modelValue: lineas.value, catalogos: catalogosDemo, conCuentas: false },
+      })
+      expect(titulo(w, 0).text()).toContain('Gasto 1 · ISP')
+      expect(titulo(w, 0).find('.gasto-total').text()).toBe('$ 70.389')
+      expect(titulo(w, 1).text()).toContain('Gasto 2 · Sin proveedor')
       expect(w.find('table').exists()).toBe(false)
-      expect(w.text()).toContain('Gasto 1')
-      expect(w.text()).toContain('Monto')
-      expect(w.text()).not.toContain('Neto')
-      expect(w.text()).not.toContain('Cuenta')
-      expect(w.find('input[aria-label="Impuesto especial gasto 1"]').exists()).toBe(true)
+    })
+
+    it('un solo gasto queda abierto; varios, cerrados; se abren y cierran con el título', async () => {
+      const uno = mount(LineasGastos, {
+        props: { modelValue: borradorDemo().lineas, catalogos: catalogosDemo, conCuentas: false },
+      })
+      expect(cuerpo(uno, 0)).toBe(true)
+      expect(titulo(uno, 0).attributes('aria-expanded')).toBe('true')
+
+      const varios = mount(LineasGastos, {
+        props: {
+          modelValue: [borradorDemo().lineas[0]!, borradorDemo().lineas[0]!],
+          catalogos: catalogosDemo,
+          conCuentas: false,
+        },
+      })
+      expect([cuerpo(varios, 0), cuerpo(varios, 1)]).toEqual([false, false])
+      await titulo(varios, 1).trigger('click')
+      expect(cuerpo(varios, 1)).toBe(true)
+      expect(titulo(varios, 1).attributes('aria-expanded')).toBe('true')
+      await titulo(varios, 1).trigger('click')
+      expect(cuerpo(varios, 1)).toBe(false)
+    })
+
+    it('"Agregar gasto" desde el editor: el nuevo va al final, abierto y con el foco', async () => {
+      const { w, borrador } = montarEditor('persona')
+      const agregar = w.findAll('button').find((b) => b.text().includes('Agregar gasto'))!
+      await agregar.trigger('click')
+      await flushPromises()
+      expect(borrador.value.lineas).toHaveLength(2)
+      expect([cuerpo(w, 0), cuerpo(w, 1)]).toEqual([false, true])
+      expect(titulo(w, 1).text()).toContain('Gasto 2 · Sin proveedor')
+    })
+
+    it('los gastos con problemas se marcan y se abren', async () => {
+      const lineas = [borradorDemo().lineas[0]!, lineaVacia()]
+      const w = mount(LineasGastos, {
+        props: { modelValue: lineas, catalogos: catalogosDemo, conCuentas: false, problemas: [] },
+      })
+      expect(w.findAll('.gasto-problema')).toHaveLength(0)
+      await w.setProps({ problemas: ['Falta la fecha.', 'Gasto 2: falta el monto.'] })
+      const gastos = w.findAll('[data-test="gasto"]')
+      expect(gastos[1]!.classes()).toContain('gasto-problema')
+      expect(gastos[0]!.classes()).not.toContain('gasto-problema')
+      expect(cuerpo(w, 1)).toBe(true)
+    })
+
+    it('boleta: "Monto" sin neto ni IVA; sin Cuenta para la persona', () => {
+      const { w } = montarTabla(false)
+      const etiquetas = w.findAll('.gasto label').map((t) => t.text())
+      expect(etiquetas).toContain('Monto')
+      expect(etiquetas).not.toContain('Neto')
+      expect(etiquetas).not.toContain('Cuenta')
     })
   })
+
 })

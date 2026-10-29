@@ -13,7 +13,7 @@ import type { Catalogos } from '@/types/catalogos'
 import type { BorradorRendicion, ModoEditor, Respaldo } from '@/types/rendicion'
 import CuadreTotales from './CuadreTotales.vue'
 import DatosFormulario from './DatosFormulario.vue'
-import LineasTable from './LineasTable.vue'
+import LineasGastos from './LineasGastos.vue'
 import RespaldosGrid from './RespaldosGrid.vue'
 
 const d = defineModel<BorradorRendicion>({ required: true })
@@ -105,18 +105,15 @@ function agregarLinea() {
 
     <section class="card">
       <div class="card-body d-flex flex-column gap-3">
-        <div class="d-flex justify-content-between align-items-center">
-          <h2>Gastos</h2>
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="agregarLinea">
-            <i class="bi bi-plus-lg" aria-hidden="true" /> Agregar línea
-          </button>
-        </div>
-        <LineasTable
+        <h2>Gastos</h2>
+        <LineasGastos
           v-model="d.lineas"
           :catalogos="catalogos"
           :con-cuentas="conCuentas"
           :rendicion-id="d.id"
           :puede-crear-subcuenta="auth.esTesoreria"
+          :problemas="problemas"
+          @agregar="agregarLinea"
         />
         <CuadreTotales :suma="suma" :total-formulario="totalFormulario" />
       </div>

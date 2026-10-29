@@ -18,6 +18,7 @@ La referencia visual es la maqueta `CLAUDE/app/rendiciones-heca.html`. La primer
 | bad / bad-soft | `#B42318` / `#FCE7E5` | `#F2877C` / `#3D1D1A` | `$danger` |
 
 - Tipografía: **IBM Plex Sans** (texto) y **IBM Plex Mono** (montos, folios, fechas en tablas). Base 14px, line-height 1.45.
+- **Botones: 48 px de alto siempre** (spec 12): todo `.btn` (también `btn-sm`, `btn-lg` y en grupos) tiene `min-height: 48px`; `sm`/`lg` solo cambian letra y relleno horizontal, el ancho sigue al texto. Fuera de la regla: `btn-close`, `btn-link` (se ve como enlace) y la × de las miniaturas. Los campos mantienen su alto.
 - Radio: 8px (`$border-radius`), 6px en inputs (`$input-border-radius`). Sin sombras fuertes: bordes de 1px.
 - Ancho de trabajo máx. 1160px, gutter 16px (respetando `safe-area-inset`).
 - Modo oscuro: seguir `prefers-color-scheme` por defecto, con toggle que fija `data-bs-theme` (recordado en `localStorage`).
@@ -32,8 +33,8 @@ La referencia visual es la maqueta `CLAUDE/app/rendiciones-heca.html`. La primer
 | `.chip.ok/warn/bad/info/muted` | `AppChip` (badge `rounded-pill` con fondo `*-subtle` y texto del color). |
 | `label.f` (etiqueta mayúscula 11px) | `form-label` con clase `.label-caps`. |
 | `.grid` de campos | `row g-3` con `col-12 col-sm-6 col-lg-4`. |
-| `.scroll > table` | `table-responsive` + `table table-sm`, encabezados 11px mayúsculas, `td.n` mono alineado a la derecha con `tabular-nums`. |
-| `table.edit` | `LineasTable`: inputs `form-control-sm` dentro de celdas. En móvil, una tarjeta por línea. |
+| `.scroll > table` | `table-responsive` + `table table-sm`, encabezados 11px mayúsculas **sobre el color de los botones primarios** (`--bs-primary` + `--app-accent-ink`: azul y blanco en claro, azul claro y tinta oscura en oscuro; spec 12, R6), `td.n` mono alineado a la derecha con `tabular-nums`. Libro (spec 12): `.table-cols` (separadores verticales) y encabezados `ThOrden` (ícono de orden, asc → desc → por defecto, `aria-sort`); `TablaPaginacion` con rango y "Mostrar [15] por página" (15/25/50/100, recordado en `localStorage`). |
+| `table.edit` | `LineasGastos` (spec 12): un colapsable por gasto con sus campos como formulario, igual en todos los anchos (sin scroll horizontal). Título "Gasto N · Proveedor" + total; borde rojo si tiene problemas; "Agregar gasto" al final abre el nuevo; "Quitar gasto" al final del cuerpo. |
 | `.drop` | `RespaldosDrop`: zona punteada; botones "Adjuntar fotos o PDF" y "Cámara" (`capture="environment"`, solo móvil); acepta arrastrar. |
 | `.thumbs` | `RespaldosGrid`: miniaturas 96×120 con botón × y zoom a `AppLightbox`; los PDF como ficha del mismo tamaño (ícono + nombre) que abre el archivo en otra pestaña. |
 | `.kpis` | `KpiTile` (etiqueta mayúscula + monto mono 18px). |
@@ -41,6 +42,7 @@ La referencia visual es la maqueta `CLAUDE/app/rendiciones-heca.html`. La primer
 | `.msg.ok/warn/bad/info` | `alert` con variantes subtle. |
 | `.sum` (cuadre) | `CuadreTotales`: suma, total formulario y chip "Cuadra" / "Diferencia $ X". |
 | `.empty` | `EmptyState`. |
+| Detalle del libro | Vista propia `/libro/<id>` (spec 12): reemplaza a la tabla, con "← Volver al libro" arriba; al volver, la tabla conserva búsqueda, filtro, orden y página, y marca la fila abierta. |
 | Línea de tiempo | `Timeline` (lista vertical: chip del evento, fecha, nota). |
 
 ## Colores por estado (`EST_CHIP` / `EV_CHIP`)

@@ -56,10 +56,10 @@ Proyecto-Rendiciones/
 │   ├── stores/                   Pinia: auth, catalogos, rendiciones, pagos, banco, personas, proveedores
 │   ├── composables/              useTheme, useMediaQuery, useDocumentoRepetido…
 │   ├── components/
-│   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, AppModal, MoneyInput
+│   │   ├── ui/                   AppChip, KpiTile, EmptyState, AppLightbox, AppModal, MoneyInput, ThOrden, TablaPaginacion
 │   │   ├── layout/               AppHeader, AppTabs, ThemeToggle
 │   │   ├── proveedores/          ProveedorForm, ImportarProveedores
-│   │   └── rendicion/            RespaldosDrop, RespaldosGrid, RendicionEditor, DatosFormulario, LineasTable, ProveedorSelect, NuevaSubcuenta, CuadreTotales, LineaTiempo
+│   │   └── rendicion/            RespaldosDrop, RespaldosGrid, RendicionEditor, DatosFormulario, LineasGastos, ProveedorSelect, NuevaSubcuenta, CuadreTotales, LineaTiempo
 │   ├── views/                    una por pantalla (LoginView, CambiarClaveView, RendirView, CarpetasView,
 │   │                             PorAprobarView, LibroView, PersonasView, BancoView, PerfilesView,
 │   │                             ProveedoresView)

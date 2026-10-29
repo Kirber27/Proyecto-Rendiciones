@@ -60,8 +60,8 @@ describe('RendirView', () => {
   it('Enviar valida y muestra los problemas sin llamar al envío', async () => {
     const w = await montar()
     await boton(w, 'Enviar rendición').trigger('click')
-    expect(w.find('[role="alert"]').text()).toContain('Línea 1: elige el proveedor.')
-    expect(w.text()).toContain('Línea 1: falta el monto.')
+    expect(w.find('[role="alert"]').text()).toContain('Gasto 1: elige el proveedor.')
+    expect(w.text()).toContain('Gasto 1: falta el monto.')
     expect(w.text()).toContain('Adjunta al menos un respaldo')
     expect(enviarRendicion).not.toHaveBeenCalled()
   })

@@ -62,7 +62,7 @@ export function useDocumentoRepetido(
   /** Mensaje de error del Nº doc. de la línea, o null. */
   function errorDocumento(i: number): string | null {
     const anterior = enFormulario.value.get(i)
-    if (anterior !== undefined) return `Repite el Nº de la línea ${anterior + 1}.`
+    if (anterior !== undefined) return `Repite el Nº del gasto ${anterior + 1}.`
     if (lineas.value[i]?.numeroRepetido) return 'Este Nº de documento ya está cargado para este proveedor.'
     return null
   }

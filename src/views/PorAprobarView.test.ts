@@ -185,7 +185,7 @@ describe('PorAprobarView', () => {
     expect(w.text()).toContain('Revisar: Mario Soto · Nº 4')
     expect(w.text()).toContain('Movimientos (3)')
     expect(w.text()).toContain('Falta la boleta')
-    expect(w.findAll('th').map((t) => t.text())).toContain('Cuenta')
+    expect(w.findAll('.gasto label').map((t) => t.text())).toContain('Cuenta')
     expect(w.find('img[src="https://firmada/a.jpg"]').exists()).toBe(true)
   })
 
@@ -193,8 +193,8 @@ describe('PorAprobarView', () => {
     const w = await montarYAbrir()
     await boton(w, 'Aprobar e ingresar').trigger('click')
     expect(srv.aprobarRendicion).not.toHaveBeenCalled()
-    expect(w.text()).toContain('Línea 1: elige la cuenta.')
-    await w.find('select[aria-label="Cuenta línea 1"]').setValue('2')
+    expect(w.text()).toContain('Gasto 1: elige la cuenta.')
+    await w.find('select[aria-label="Cuenta gasto 1"]').setValue('2')
     await boton(w, 'Aprobar e ingresar').trigger('click')
     await flushPromises()
     expect(srv.aprobarRendicion).toHaveBeenCalledWith(

@@ -8,7 +8,9 @@ import {
   entradaReporte,
   filtrarLibro,
   kpisLibro,
+  ordenarLibro,
   paginar,
+  siguienteOrden,
   pagosParaExcel,
   rendicionesParaExcel,
   type FilaLibro,
@@ -112,6 +114,36 @@ describe('filtrarLibro', () => {
   })
 })
 
+describe('orden por columna', () => {
+  const ids = (orden: Parameters<typeof ordenarLibro>[2]) =>
+    ordenarLibro(filas, porRendicion, orden).map((x) => x.id)
+
+  it('siguienteOrden: asc → desc → por defecto; otra columna parte en asc', () => {
+    expect(siguienteOrden(null, 'total')).toEqual({ columna: 'total', dir: 'asc' })
+    expect(siguienteOrden({ columna: 'total', dir: 'asc' }, 'total')).toEqual({ columna: 'total', dir: 'desc' })
+    expect(siguienteOrden({ columna: 'total', dir: 'desc' }, 'total')).toBeNull()
+    expect(siguienteOrden({ columna: 'total', dir: 'desc' }, 'fecha')).toEqual({ columna: 'fecha', dir: 'asc' })
+  })
+  it('sin orden: fecha descendente', () => {
+    expect(ids(null)).toEqual(['e', 'd', 'c', 'b', 'a'])
+  })
+  it('números de menor a mayor y al revés (empates por orden por defecto)', () => {
+    expect(ids({ columna: 'total', dir: 'asc' })).toEqual(['d', 'c', 'b', 'e', 'a'])
+    expect(ids({ columna: 'total', dir: 'desc' })).toEqual(['e', 'a', 'b', 'c', 'd'])
+    expect(ids({ columna: 'nro', dir: 'desc' })).toEqual(['e', 'd', 'c', 'b', 'a'])
+  })
+  it('pagado y por pagar: las eliminadas cuentan como 0', () => {
+    expect(ids({ columna: 'pagado', dir: 'desc' }).slice(0, 2)).toEqual(['a', 'b'])
+    expect(ids({ columna: 'saldo', dir: 'desc' })).toEqual(['c', 'b', 'd', 'e', 'a']) // b y c empatan en 5.000
+  })
+  it('texto sin tildes ni mayúsculas; fecha ascendente', () => {
+    expect(ids({ columna: 'persona', dir: 'asc' })).toEqual(['e', 'c', 'b', 'a', 'd'])
+    expect(ids({ columna: 'fecha', dir: 'asc' })).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(ids({ columna: 'estado', dir: 'asc' }).at(0)).toBe('e') // Eliminada
+    expect(ids({ columna: 'origen', dir: 'desc' }).at(0)).toBe('d') // Histórico
+  })
+})
+
 describe('paginar', () => {
   const lista = Array.from({ length: 120 }, (_, i) => i)
   it('corta en páginas y ajusta fuera de rango', () => {
@@ -119,7 +151,12 @@ describe('paginar', () => {
     expect(paginar(lista, 3)).toMatchObject({ pagina: 3, paginas: 3 })
     expect(paginar(lista, 3).items).toHaveLength(20)
     expect(paginar(lista, 9).pagina).toBe(3)
-    expect(paginar([], 1)).toEqual({ items: [], pagina: 1, paginas: 1 })
+    expect(paginar([], 1)).toEqual({ items: [], pagina: 1, paginas: 1, desde: 0, hasta: 0 })
+  })
+  it('rango que se muestra y tamaño elegido', () => {
+    expect(paginar(lista, 1, 15)).toMatchObject({ paginas: 8, desde: 1, hasta: 15 })
+    expect(paginar(lista, 8, 15)).toMatchObject({ desde: 106, hasta: 120 })
+    expect(paginar(lista, 3)).toMatchObject({ desde: 101, hasta: 120 })
   })
 })
 

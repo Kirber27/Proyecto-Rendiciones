@@ -138,12 +138,16 @@ export function borradorNuevo({ catalogos, personaFija, hoy }: ContextoBorradorN
 export function tieneDatos(d: BorradorRendicion): boolean {
   if (tr(d.fondo) || tr(d.totalFormulario)) return true
   if (d.respaldos.length || d.lineas.length > 1) return true
-  return d.lineas.some(
-    (l) =>
-      !!(tr(l.proveedor) || tr(l.rut) || tr(l.numero) || tr(l.detalle)) ||
-      l.proveedorId != null ||
-      l.subcuentaId != null ||
-      totalLinea(l) !== 0,
+  return d.lineas.some(lineaConDatos)
+}
+
+/** La línea tiene algo escrito o elegido (para confirmar antes de quitarla). */
+export function lineaConDatos(l: LineaBorrador): boolean {
+  return (
+    !!(tr(l.proveedor) || tr(l.rut) || tr(l.numero) || tr(l.detalle)) ||
+    l.proveedorId != null ||
+    l.subcuentaId != null ||
+    totalLinea(l) !== 0
   )
 }
 
@@ -164,6 +168,43 @@ export interface ContextoValidacion {
   respaldos?: number
 }
 
+/** Prefijo de los problemas de un gasto: "Gasto 2: …" (spec 12, R1.9). */
+const prefijoGasto = (i: number) => `Gasto ${i + 1}: `
+
+/**
+ * Problemas de un gasto (índice `i`), con el prefijo "Gasto N: ". `repetidos` sale de
+ * `repetidosEnFormulario` sobre todas las líneas del formulario.
+ */
+export function problemasDeLinea(
+  l: LineaBorrador,
+  i: number,
+  repetidos: ReadonlyMap<number, number>,
+  ctx: Pick<ContextoValidacion, 'esTesoreria' | 'exigirProveedor'>,
+): string[] {
+  const p: string[] = []
+  if (ctx.exigirProveedor && !l.proveedorId) p.push('elige el proveedor.')
+  const anterior = repetidos.get(i)
+  if (anterior !== undefined) {
+    p.push(`repite el Nº de documento del gasto ${anterior + 1}.`)
+  } else if (l.numeroRepetido) {
+    p.push('este Nº de documento ya está cargado para este proveedor.')
+  }
+  if (totalLinea(l) === 0) p.push('falta el monto.')
+  if (ctx.esTesoreria && l.subcuentaId == null) p.push('elige la subcuenta.')
+  if (ctx.esTesoreria && l.cuentaId == null) p.push('elige la cuenta.')
+  return p.map((t) => prefijoGasto(i) + t)
+}
+
+/** Índices de los gastos que aparecen en una lista de problemas de `validarRendicion`. */
+export function gastosConProblemas(problemas: readonly string[]): Set<number> {
+  const s = new Set<number>()
+  for (const t of problemas) {
+    const m = /^Gasto (\d+): /.exec(t)
+    if (m) s.add(Number(m[1]) - 1)
+  }
+  return s
+}
+
 /**
  * Problemas que impiden enviar, aprobar o guardar (todos juntos, en el orden del formulario).
  * Lista vacía = se puede guardar. El Nº no se valida: es correlativo y lo asigna el servidor.
@@ -176,18 +217,7 @@ export function validarRendicion(d: BorradorRendicion, ctx: ContextoValidacion):
   if (!d.fecha) p.push('Falta la fecha.')
   if (!d.lineas.length) p.push('Agrega al menos un gasto.')
   const repetidos = repetidosEnFormulario(d.lineas)
-  d.lineas.forEach((l, i) => {
-    if (ctx.exigirProveedor && !l.proveedorId) p.push(`Línea ${i + 1}: elige el proveedor.`)
-    const anterior = repetidos.get(i)
-    if (anterior !== undefined) {
-      p.push(`Línea ${i + 1}: repite el Nº de documento de la línea ${anterior + 1}.`)
-    } else if (l.numeroRepetido) {
-      p.push(`Línea ${i + 1}: este Nº de documento ya está cargado para este proveedor.`)
-    }
-    if (totalLinea(l) === 0) p.push(`Línea ${i + 1}: falta el monto.`)
-    if (ctx.esTesoreria && l.subcuentaId == null) p.push(`Línea ${i + 1}: elige la subcuenta.`)
-    if (ctx.esTesoreria && l.cuentaId == null) p.push(`Línea ${i + 1}: elige la cuenta.`)
-  })
+  d.lineas.forEach((l, i) => p.push(...problemasDeLinea(l, i, repetidos, ctx)))
   if (cuadra(sumaLineas(d), totalFormularioDe(d)) === false) {
     p.push('La suma de los gastos no cuadra con el total del formulario.')
   }
