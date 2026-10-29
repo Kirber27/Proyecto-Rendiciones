@@ -18,6 +18,15 @@ Decisiones tomadas con el usuario (2026-10-27):
 - **R1.5** En un reenvío (observada → en revisión), la aprobación y la edición en el libro, el Nº se conserva.
 - **R1.6** MIENTRAS no haya solicitante elegido, el campo DEBERÁ mostrarse vacío con el texto "Elige el solicitante".
 
+### R1b. Nº faltantes del correlativo (pedido 2026-10-29)
+
+El historial cargado tiene huecos (p. ej. una persona con 1, 2, 3, 5 y 6, sin el 4). Para poder cargar esas rendiciones en esta etapa de inicio:
+
+- **R1.7** CUANDO se elija el solicitante, SI la persona tiene **Nº faltantes** (números de 1 al mayor que no existen en ninguna de sus rendiciones, en cualquier estado), EL SISTEMA DEBERÁ avisarlos bajo el campo ("Faltan en el correlativo: 4") y permitir elegir uno de ellos en "Nº rendición".
+- **R1.8** Por defecto el Nº sigue siendo el correlativo (R1.1 en una nueva, R1.5 en una guardada); elegir un faltante es opcional. El campo sigue sin escribirse a mano: solo se elige entre el Nº por defecto y los faltantes.
+- **R1.9** El servidor DEBERÁ aceptar el Nº elegido solo si en ese momento es un faltante de la persona (con el mismo bloqueo por persona de R1.4); si ya no lo es, rechaza con "El Nº X ya no está libre para esta persona. Elige otro o deja el siguiente." Aplica al enviar, reenviar, aprobar y editar en el libro.
+- **R1.10** Puede elegir un faltante quien puede guardar la rendición: la persona dueña (la suya) y tesorería (cualquiera).
+
 ## R2. Proveedores (puntos 2 y 3)
 
 ### Vista Proveedores

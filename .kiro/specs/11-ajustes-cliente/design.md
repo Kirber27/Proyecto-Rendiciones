@@ -20,6 +20,7 @@ Migraciones nuevas (una por cambio de esquema, sin tocar las aplicadas):
 - `20261027000020_lineas_con_proveedor.sql`
 - `20261027000021_documento_unico.sql`
 - `20261027000022_crear_subcuenta.sql`
+- `20261029000023_nro_faltante.sql` (R1b)
 
 Cada una se prueba con `npm run db:probar` (PGlite) antes de `db:push`.
 
@@ -38,6 +39,13 @@ $$;  -- con chequeo: p_persona = mi_persona_id() or es_tesoreria(), si no, excep
 - Cliente: `services/rendiciones.ts` → `siguienteNro(personaId)`. `RendicionEditor` lo pide al cambiar `personaId` en un borrador sin `id` (y al cargar uno con persona fija). `d.nro` se llena con el resultado; si falla, queda vacío y el envío lo asigna igual.
 - `validarRendicion`: en borradores sin `id` el Nº ya no es obligatorio (lo asigna el servidor); con `id` sigue igual.
 - `tieneDatos`: no cuenta el Nº (ahora se llena solo).
+
+### 1b. Nº faltantes (R1.7–R1.10, migración `…0023_nro_faltante.sql`)
+
+- `_nros_faltantes(persona) int[]`: `generate_series(1, max(nro))` sin los Nº existentes (cualquier estado). `nros_faltantes(persona)`: misma regla de acceso que `siguiente_nro`.
+- `_nro_rendicion(persona, rendicion, pedido)`: toma el lock por persona y decide el Nº en un solo lugar. Si `pedido` viene y no es el Nº que la rendición ya tiene con esa persona, debe estar en `_nros_faltantes` (si no, error R1.9). Sin `pedido`: conserva el Nº si la persona no cambia; si no, mayor + 1.
+- `enviar_rendicion`, `aprobar_rendicion`, `editar_rendicion` (`create or replace`, mismos cuerpos que 0020 / 0018): calculan `v_nro` con `_nro_rendicion(v_persona, id, p ->> 'nro_faltante')`. El campo `nro` del payload se sigue ignorando: el Nº elegido viaja aparte en `nro_faltante`, solo cuando se eligió un faltante. El folio ya se recalcula si cambia el Nº.
+- Cliente: `services/rendiciones.nrosFaltantes`. `RendicionEditor` la pide junto con `siguienteNro` (o sola si conserva el Nº guardado); si falla, no hay faltantes y sigue el flujo normal. `DatosFormulario`: con faltantes, el Nº es un `select` ("7 · siguiente" o "7 · actual" + los faltantes) con el aviso debajo; sin faltantes, el `input` de solo lectura de siempre. `BorradorRendicion.nroFaltante` marca la elección y `limpiarRendicion` agrega `nro_faltante`. Cambiar de persona o recargar el borrador vuelve al Nº por defecto.
 
 ## 2-3. Proveedores
 

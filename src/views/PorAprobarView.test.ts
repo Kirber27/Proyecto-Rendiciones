@@ -19,7 +19,10 @@ vi.mock('@/services/aprobacion', async (original) => ({
   ...srv,
 }))
 vi.mock('@/services/catalogos', () => ({ leerCatalogos: vi.fn(async () => catalogosDemo) }))
-vi.mock('@/services/rendiciones', () => ({ siguienteNro: vi.fn(async () => 50) }))
+vi.mock('@/services/rendiciones', () => ({
+  siguienteNro: vi.fn(async () => 50),
+  nrosFaltantes: vi.fn(async () => []),
+}))
 vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 
 const { default: PorAprobarView } = await import('./PorAprobarView.vue')

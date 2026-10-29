@@ -961,6 +961,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: Database["public"]["Enums"]["estado_rendicion"]
       }
+      nros_faltantes: { Args: { p_persona: string }; Returns: number[] }
       rut_valido: { Args: { t: string }; Returns: boolean }
       siguiente_nro: { Args: { p_persona: string }; Returns: number }
       vincular_cuenta: {

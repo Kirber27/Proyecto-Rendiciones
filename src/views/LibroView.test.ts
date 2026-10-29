@@ -22,7 +22,10 @@ const otros = vi.hoisted(() => ({
   descargarReportePdf: vi.fn(),
 }))
 vi.mock('@/services/libro', () => srv)
-vi.mock('@/services/rendiciones', () => ({ siguienteNro: vi.fn(async () => 50) }))
+vi.mock('@/services/rendiciones', () => ({
+  siguienteNro: vi.fn(async () => 50),
+  nrosFaltantes: vi.fn(async () => []),
+}))
 vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 vi.mock('@/services/pagos', () => ({ leerPagos: otros.leerPagos }))
 vi.mock('@/services/aprobacion', () => ({

@@ -70,6 +70,8 @@ export interface BorradorRendicion {
   id?: string
   personaId: string | null
   nro: string
+  /** El Nº es un faltante del correlativo elegido en el formulario (no el Nº por defecto). */
+  nroFaltante?: boolean
   fecha: string
   empresaId: number | null
   fondo: string
@@ -103,6 +105,8 @@ export interface RendicionPayload {
   id?: string
   persona_id: string
   nro: number
+  /** Faltante del correlativo elegido: el servidor lo usa si sigue libre (si no, asigna el Nº). */
+  nro_faltante?: number
   fecha: string
   empresa_id: number | null
   fondo: string

@@ -12,7 +12,7 @@ vi.mock('@/lib/supabase', () => ({
   },
 }))
 vi.mock('@/lib/imagenes', () => ({ reducirImagen: vi.fn(async (f: Blob) => f) }))
-const { enviarRendicion, rutaRespaldo, siguienteNro } = await import('./rendiciones')
+const { enviarRendicion, nrosFaltantes, rutaRespaldo, siguienteNro } = await import('./rendiciones')
 
 const PERSONA = 'p-1'
 const borrador = (c: Partial<BorradorRendicion> = {}): BorradorRendicion => ({
@@ -140,6 +140,14 @@ describe('Nº correlativo', () => {
       subidas: new Map(),
     })
     expect(r.nro).toBe(15)
+  })
+
+  it('nrosFaltantes consulta la RPC de la persona', async () => {
+    sb.rpc.mockResolvedValueOnce({ data: [4, 9], error: null })
+    expect(await nrosFaltantes('p-1')).toEqual([4, 9])
+    expect(sb.rpc).toHaveBeenCalledWith('nros_faltantes', { p_persona: 'p-1' })
+    sb.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Solo puedes ver tu propio correlativo.' } })
+    await expect(nrosFaltantes('p-2')).rejects.toThrow('Solo puedes ver tu propio correlativo.')
   })
 
   it('siguienteNro consulta la RPC de la persona', async () => {

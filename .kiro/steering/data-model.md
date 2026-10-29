@@ -151,6 +151,7 @@ cartola_movimientos
 | Función | Quién | Efecto |
 | --- | --- | --- |
 | `siguiente_nro(persona)` | la persona (la suya) o tesorería | Mayor Nº de la persona + 1 (para mostrarlo en el formulario). |
+| `nros_faltantes(persona)` | la persona (la suya) o tesorería | Nº de 1 al mayor que no existen (huecos del correlativo). enviar/aprobar/editar aceptan uno en `nro_faltante` si sigue libre. |
 | `enviar_rendicion(p jsonb)` | solicitante (o tesorería por otro) | Crea o reemplaza (si está `en_revision`/`observada` y es suya) cabecera + líneas + respaldos (`.jpg`/`.pdf`; exige al menos uno). Asigna el Nº correlativo a las nuevas (ignora el del payload). Exige proveedor activo de la lista en cada línea. Evento Enviada/Reenviada. Observada → en_revision. |
 | `aprobar_rendicion(id, p jsonb)` | tesorería | Guarda las correcciones, exige subcuenta/cuenta, asigna folio si no tiene, estado aprobada. Conserva el Nº (nuevo correlativo solo si cambia la persona). |
 | `observar_rendicion(id, nota)` / `rechazar_rendicion(id, nota)` | tesorería | Nota obligatoria. |

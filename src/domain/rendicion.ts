@@ -207,6 +207,7 @@ export function limpiarRendicion(d: BorradorRendicion): RendicionPayload {
     ...(d.id ? { id: d.id } : {}),
     persona_id: d.personaId,
     nro: Number(tr(d.nro)) || 0,
+    ...(d.nroFaltante && Number(d.nro) > 0 ? { nro_faltante: Number(d.nro) } : {}),
     fecha: d.fecha,
     empresa_id: d.empresaId,
     fondo: tr(d.fondo),

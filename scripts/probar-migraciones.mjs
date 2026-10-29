@@ -580,6 +580,43 @@ await como(admin, async () => {
   })
 }
 
+// ---------- Nº faltantes del correlativo (spec 11.12) ----------
+{
+  const hue = await valor(`insert into public.personas (nombre, codigo) values ('Persona Huecos', 'PHU') returning id`)
+  for (const nro of [1, 2, 3, 5, 6]) {
+    await db.query(`insert into public.rendiciones (persona_id, nro, fecha, estado, origen) values ($1, $2, '2026-03-01', 'aprobada', 'Histórico')`, [hue, nro])
+  }
+  const envioHue = (id, extra = {}) =>
+    JSON.stringify({ id, persona_id: hue, nro: 1, fecha: '2026-10-22', empresa_id: 2, lineas: conCuenta, respaldos: [`${hue}/${id}/a.jpg`], ...extra })
+  const nroDe = (id) => valor(`select nro from public.rendiciones where id = $1`, [id])
+  const h = ['00000000-0000-4000-8000-00000000f401', '00000000-0000-4000-8000-00000000f402', '00000000-0000-4000-8000-00000000f403']
+  await como(raul, async () => {
+    await debeFallar(`select public.nros_faltantes('${hue}')`, 'nros_faltantes: un solicitante no ve los de otra persona')
+    ok(Array.isArray(await valor(`select public.nros_faltantes($1)`, [raulPersona])), 'nros_faltantes: la persona ve los suyos')
+  })
+  await como(admin, async () => {
+    ok(JSON.stringify(await valor(`select public.nros_faltantes($1)`, [hue])) === '[4]', 'nros_faltantes: huecos de 1 al mayor (1, 2, 3, 5, 6 → 4)')
+    await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioHue(h[0], { nro_faltante: 4 })])
+    ok((await nroDe(h[0])) === 4, 'enviar_rendicion: acepta un Nº faltante elegido')
+    ok(JSON.stringify(await valor(`select public.nros_faltantes($1)`, [hue])) === '[]', 'nros_faltantes: el faltante usado ya no aparece')
+    await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: rechaza un Nº que ya no está libre', [envioHue(h[1], { nro_faltante: 4 })])
+    await debeFallar(`select public.enviar_rendicion($1::jsonb)`, 'enviar_rendicion: rechaza un Nº mayor que el último', [envioHue(h[1], { nro_faltante: 9 })])
+    await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioHue(h[1])])
+    ok((await nroDe(h[1])) === 7, 'enviar_rendicion: sin elegir, sigue el correlativo (mayor + 1)')
+    await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioHue(h[0], { nro_faltante: 4 })])
+    ok((await nroDe(h[0])) === 4, 'reenvío: puede repetir el Nº que ya tiene')
+  })
+  await db.query(`insert into public.rendiciones (persona_id, nro, fecha, estado, origen) values ($1, 10, '2026-03-01', 'aprobada', 'Histórico')`, [hue])
+  await como(admin, async () => {
+    ok((await valor(`select public.aprobar_rendicion($1, $2::jsonb, null)`, [h[1], JSON.stringify({ lineas: conCuenta, nro_faltante: 8 })])) === 'PHU-008', 'aprobar: con un faltante elegido toma ese Nº y su folio')
+    ok((await valor(`select public.editar_rendicion($1, $2::jsonb, null)`, [h[1], JSON.stringify({ lineas: conCuenta, nro_faltante: 9 })])) === 'PHU-009', 'editar: con un faltante elegido cambia el Nº y el folio')
+    ok((await valor(`select public.editar_rendicion($1, $2::jsonb, null)`, [h[1], JSON.stringify({ lineas: conCuenta })])) === 'PHU-009', 'editar: sin elegir conserva el Nº')
+    await debeFallar(`select public.editar_rendicion($1, $2::jsonb, null)`, 'editar: no a un Nº ocupado', [h[1], JSON.stringify({ lineas: conCuenta, nro_faltante: 4 })])
+    await db.query(`select public.enviar_rendicion($1::jsonb)`, [envioHue(h[2])])
+    ok((await nroDe(h[2])) === 11, 'enviar_rendicion: el correlativo por defecto no cambia (mayor + 1)')
+  })
+}
+
 // ---------- Nueva subcuenta (spec 11.8) ----------
 await como(raul, async () => {
   await debeFallar(`select public.crear_subcuenta('Peajes nuevos')`, 'crear_subcuenta: un solicitante no puede')

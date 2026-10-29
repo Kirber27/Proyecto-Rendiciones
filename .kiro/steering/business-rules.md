@@ -27,6 +27,7 @@ Portadas del prototipo (`CLAUDE/app/rendiciones-heca.html`). Entre paréntesis, 
 ## Folio de rendición (`rid`, `codeOf`)
 
 - **Nº de rendición = correlativo por persona** (spec 11): mayor Nº de la persona (en cualquier estado, incluido el historial) + 1. No se escribe: el formulario lo muestra al elegir el solicitante (`siguiente_nro`) y el servidor lo asigna al enviar una nueva. Se conserva en reenvíos, aprobación y edición; si tesorería cambia la persona, toma el siguiente de la nueva persona.
+- **Nº faltantes** (pedido 2026-10-29): si la persona tiene huecos en su correlativo (números de 1 al mayor que no existen en ningún estado, p. ej. por el historial), el formulario los avisa al elegir el solicitante y deja elegir uno en vez del Nº por defecto (`nros_faltantes`; viaja como `nro_faltante`). El servidor lo acepta solo si sigue libre; el Nº por defecto no cambia.
 - Folio = **código de la persona + "-" + Nº del formulario con 3 dígitos**: `DHE-042`.
 - Si el folio ya existe, se agrega un sufijo corto aleatorio (`DHE-042-x7`). Se asigna **al aprobar**.
 - Código de persona: el de `personas.codigo`; si no, el de `CLAUDE/datos/codes.json`; si no, primeras 3 letras del nombre normalizado.

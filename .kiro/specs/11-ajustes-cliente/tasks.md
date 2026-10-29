@@ -54,6 +54,12 @@ Requiere: 02 (formulario), 04 (libro), 01 (catálogos y RLS). Una tarea por vez,
   - Exportación de la selección sin marcar exportadas, nombre `Rendiciones_busqueda_…`, botón con estado deshabilitado. Tests de store/vista.
   - Hecho: `libro.exportarBusqueda(lista)` (comparte `descargar` con `exportarExcel`), `nombreArchivoExcel(hoy, 'busqueda')`, botón "Excel (búsqueda)" junto a los otros (grupo con `flex-wrap` para el celular). 441 tests.
 
+- [x] **11.12 Nº faltantes del correlativo** _(R1b, pedido 2026-10-29)_
+  - Migración `…0023_nro_faltante.sql`: `nros_faltantes`, `_nro_rendicion`; enviar/aprobar/editar aceptan `nro_faltante` si es un faltante de la persona.
+  - Cliente: `nrosFaltantes` (servicio), selector de Nº con aviso en `DatosFormulario`, `nroFaltante` en el borrador → `nro_faltante` en el payload.
+  - Tests: dominio (payload), editor (faltantes al elegir persona, volver al siguiente), RPC en `probar-migraciones` (acepta faltante, rechaza ocupado o fuera de rango, aprobar/editar).
+  - Hecho: `_nros_faltantes` / `nros_faltantes` y `_nro_rendicion` (único lugar donde se decide el Nº, con el lock por persona); enviar/aprobar/editar con `nro_faltante`. En el formulario, con faltantes el Nº es un selector ("43 · siguiente" o "42 · actual" + "4 · faltante") con el aviso debajo; sin faltantes, el campo de solo lectura de siempre. `nros_faltantes` agregado a mano en `database.types.ts` (regenerar tras el push). 446 tests; `db:probar` OK.
+
 - [ ] **11.11 Prueba en producción** — la hace el usuario
-  - `npm run db:push` de las migraciones 0018–0022; revisar la precarga de proveedores (cantidad y nombres) y cargar el Excel del cliente.
+  - `npm run db:push` de las migraciones 0018–0023; revisar la precarga de proveedores (cantidad y nombres) y cargar el Excel del cliente.
   - Rendir desde el celular: Nº automático, proveedor de la lista, Nº doc. repetido en rojo, IVA, impuesto especial. Tesorería: nueva subcuenta, búsqueda con KPIs y Excel (búsqueda).

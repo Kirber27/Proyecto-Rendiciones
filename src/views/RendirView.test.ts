@@ -11,7 +11,11 @@ vi.mock('@/services/aprobacion', () => ({
 }))
 const enviarRendicion = vi.hoisted(() => vi.fn())
 const siguienteNro = vi.hoisted(() => vi.fn(async () => 5))
-vi.mock('@/services/rendiciones', () => ({ enviarRendicion, siguienteNro }))
+vi.mock('@/services/rendiciones', () => ({
+  enviarRendicion,
+  siguienteNro,
+  nrosFaltantes: vi.fn(async () => []),
+}))
 vi.mock('@/services/proveedores', () => ({ listarProveedores: vi.fn(async () => []) }))
 
 const { default: RendirView } = await import('./RendirView.vue')

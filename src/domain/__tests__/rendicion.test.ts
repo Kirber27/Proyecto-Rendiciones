@@ -255,6 +255,15 @@ describe('limpiarRendicion', () => {
     expect(p.lineas[0]!.fecha).toBe('2026-10-10')
   })
 
+  it('Nº faltante elegido: viaja aparte en nro_faltante', () => {
+    expect(limpiarRendicion(borrador()).nro_faltante).toBeUndefined()
+    expect(limpiarRendicion(borrador({ nro: '4', nroFaltante: true }))).toMatchObject({
+      nro: 4,
+      nro_faltante: 4,
+    })
+    expect(limpiarRendicion(borrador({ nro: '', nroFaltante: true })).nro_faltante).toBeUndefined()
+  })
+
   it('total del formulario vacío queda null', () => {
     expect(totalFormularioDe({ totalFormulario: '' })).toBeNull()
     expect(limpiarRendicion(borrador({ totalFormulario: '' })).total_formulario).toBeNull()

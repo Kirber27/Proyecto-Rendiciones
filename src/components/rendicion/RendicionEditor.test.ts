@@ -7,8 +7,9 @@ import { borradorDemo, catalogosDemo } from '@/dev/catalogosDemo'
 import type { ModoEditor } from '@/types/rendicion'
 
 const siguienteNro = vi.hoisted(() => vi.fn())
+const nrosFaltantes = vi.hoisted(() => vi.fn())
 const documentoRepetido = vi.hoisted(() => vi.fn())
-vi.mock('@/services/rendiciones', () => ({ siguienteNro, documentoRepetido }))
+vi.mock('@/services/rendiciones', () => ({ siguienteNro, nrosFaltantes, documentoRepetido }))
 // Proveedores FICTICIOS (RUT calculados con el módulo 11)
 const listarProveedores = vi.hoisted(() => vi.fn())
 const crearProveedor = vi.hoisted(() => vi.fn())
@@ -29,6 +30,7 @@ beforeEach(() => {
     { id: 'pv-3', nombre: 'Cerrada', rut: '11111111-1', eliminado: true },
   ])
   siguienteNro.mockReset().mockImplementation(async (p: string) => (p === 'p-1' ? 43 : 8))
+  nrosFaltantes.mockReset().mockResolvedValue([])
 })
 
 function montarEditor(modo: ModoEditor, cambios = {}) {
@@ -153,6 +155,53 @@ describe('RendicionEditor', () => {
     await flushPromises()
     expect(borrador.value.nro).toBe('')
     expect(w.find('input.mono[readonly]').attributes('placeholder')).toBe('Se asigna al enviar')
+  })
+
+  it('Nº faltantes: se avisan y se puede elegir uno; por defecto queda el siguiente', async () => {
+    nrosFaltantes.mockImplementation(async (p: string) => (p === 'p-1' ? [4, 9] : []))
+    const { w, borrador } = montarEditor('persona', { nro: '', personaId: null })
+    await w.find('select').setValue('p-1')
+    await flushPromises()
+    expect(nrosFaltantes).toHaveBeenCalledWith('p-1')
+    expect(w.text()).toContain('Faltan en el correlativo: 4, 9')
+    const nro = w.findAll('select')[1]!
+    expect(nro.findAll('option').map((o) => o.text())).toEqual([
+      '43 · siguiente',
+      '4 · faltante',
+      '9 · faltante',
+    ])
+    expect(borrador.value).toMatchObject({ nro: '43', nroFaltante: false })
+    await nro.setValue('4')
+    expect(borrador.value).toMatchObject({ nro: '4', nroFaltante: true })
+    await nro.setValue('43')
+    expect(borrador.value).toMatchObject({ nro: '43', nroFaltante: false })
+    // Otra persona sin faltantes: vuelve el campo de solo lectura con su siguiente
+    await nro.setValue('9')
+    const otra = catalogosDemo.personas.find((p) => p.id !== 'p-1')!.id
+    await w.find('select').setValue(otra)
+    await flushPromises()
+    expect(borrador.value).toMatchObject({ nro: '8', nroFaltante: false })
+    expect(w.find('input.mono[readonly]').exists()).toBe(true)
+    expect(w.text()).not.toContain('Faltan en el correlativo')
+  })
+
+  it('Nº faltantes en una rendición guardada: el Nº actual por defecto', async () => {
+    nrosFaltantes.mockResolvedValue([4])
+    const { w, borrador } = montarEditor('libro', { id: 'r-1', nro: '42' })
+    await flushPromises()
+    expect(siguienteNro).not.toHaveBeenCalled()
+    const nro = w.findAll('select')[1]!
+    expect(nro.findAll('option').map((o) => o.text())).toEqual(['42 · actual', '4 · faltante'])
+    await nro.setValue('4')
+    expect(borrador.value).toMatchObject({ nro: '4', nroFaltante: true })
+  })
+
+  it('si no se pueden consultar los faltantes, sigue con el Nº por defecto', async () => {
+    nrosFaltantes.mockRejectedValueOnce(new Error('sin red'))
+    const { w, borrador } = montarEditor('persona')
+    await flushPromises()
+    expect(borrador.value.nro).toBe('43')
+    expect(w.find('input.mono[readonly]').exists()).toBe(true)
   })
 
   it('el solicitante fijo no se puede cambiar', () => {

@@ -122,3 +122,10 @@ export async function siguienteNro(personaId: string): Promise<number> {
   if (error) throw new Error(error.message)
   return data
 }
+
+/** Nº faltantes del correlativo de la persona (de 1 al mayor, los que no existen). */
+export async function nrosFaltantes(personaId: string): Promise<number[]> {
+  const { data, error } = await supabase.rpc('nros_faltantes', { p_persona: personaId })
+  if (error) throw new Error(error.message)
+  return data ?? []
+}

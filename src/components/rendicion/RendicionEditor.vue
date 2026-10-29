@@ -7,7 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { centroCostoDeEmpresa } from '@/domain/catalogos'
 import { lineaVacia, sumaLineas, totalFormularioDe } from '@/domain/rendicion'
-import { siguienteNro } from '@/services/rendiciones'
+import { nrosFaltantes, siguienteNro } from '@/services/rendiciones'
 import { useAuthStore } from '@/stores/auth'
 import type { Catalogos } from '@/types/catalogos'
 import type { BorradorRendicion, ModoEditor, Respaldo } from '@/types/rendicion'
@@ -37,10 +37,15 @@ const totalFormulario = computed(() => totalFormularioDe(d.value))
 
 // Nº correlativo (spec 11, R1): no se escribe. Una rendición guardada conserva su Nº mientras no cambie
 // la persona; si no, se muestra el siguiente de la persona elegida (el servidor lo confirma al guardar).
+// R1b: si la persona tiene Nº faltantes, se puede elegir uno en vez del Nº por defecto.
 let original: { personaId: string | null; nro: string } | null = null
 let consulta = 0
 /** Estado de la consulta del Nº, para el texto del campo mientras está vacío. */
 const estadoNro = ref<'consultando' | 'sin-respuesta' | null>(null)
+/** Nº por defecto: el guardado (si conserva la persona) o el siguiente. */
+const nroPorDefecto = ref('')
+const nroGuardado = ref(false)
+const faltantes = ref<number[]>([])
 watch(
   () => [d.value, d.value.personaId] as const,
   async ([borrador, personaId], antes) => {
@@ -48,23 +53,29 @@ watch(
       original = borrador.id ? { personaId: borrador.personaId, nro: borrador.nro } : null
     }
     const yo = ++consulta
+    const conserva = !!original && personaId === original.personaId
     estadoNro.value = null
-    if (original && personaId === original.personaId) {
-      borrador.nro = original.nro
-      return
-    }
-    borrador.nro = ''
+    faltantes.value = []
+    nroGuardado.value = conserva
+    nroPorDefecto.value = conserva ? original!.nro : ''
+    borrador.nro = nroPorDefecto.value
+    borrador.nroFaltante = false
     if (!personaId) return
-    estadoNro.value = 'consultando'
-    try {
-      const nro = await siguienteNro(personaId)
-      if (yo === consulta) {
-        borrador.nro = String(nro)
-        estadoNro.value = null
-      }
-    } catch {
-      // Sin el Nº a la vista igual se puede enviar: lo asigna el servidor.
-      if (yo === consulta) estadoNro.value = 'sin-respuesta'
+    if (!conserva) estadoNro.value = 'consultando'
+    // Sin faltantes a la vista se sigue con el Nº por defecto; sin el siguiente, lo asigna el servidor.
+    const [siguiente, huecos] = await Promise.allSettled([
+      conserva ? Promise.resolve(null) : siguienteNro(personaId),
+      nrosFaltantes(personaId),
+    ])
+    if (yo !== consulta) return
+    if (huecos.status === 'fulfilled') faltantes.value = huecos.value
+    if (conserva) return
+    if (siguiente.status === 'fulfilled' && siguiente.value !== null) {
+      nroPorDefecto.value = String(siguiente.value)
+      if (!borrador.nroFaltante) borrador.nro = nroPorDefecto.value
+      estadoNro.value = null
+    } else {
+      estadoNro.value = 'sin-respuesta'
     }
   },
   { immediate: true },
@@ -87,6 +98,9 @@ function agregarLinea() {
       :catalogos="catalogos"
       :solicitante-fijo="solicitanteFijo"
       :estado-nro="estadoNro"
+      :nro-por-defecto="nroPorDefecto"
+      :nro-guardado="nroGuardado"
+      :nros-faltantes="faltantes"
     />
 
     <section class="card">

@@ -14,7 +14,7 @@ Cada spec tiene `requirements.md` (qué, en formato EARS), `design.md` (cómo) y
 | 08 | [Perfiles](08-perfiles/) — personas, funciones, cuentas | 01 | ✅ Completo (8.7 reemplazada por la 10) |
 | 09 | Despliegue (abajo) | todo | ⬜ |
 | 10 | [Ingreso con contraseña](10-ingreso-con-contrasena/) — correo + contraseña, cuentas y contraseñas temporales desde Perfiles, sin correos | 01, 08 | 🟡 Implementado (10.5: configurar el panel de Supabase y probar) |
-| 11 | [Ajustes del cliente](11-ajustes-cliente/) — Nº correlativo, proveedores con RUT, Nº doc. único, IVA calculado, impuesto especial, nueva subcuenta, KPIs y Excel de la búsqueda | 02, 04 | 🟡 Implementado (11.1–11.10; 11.11: push de migraciones 0018–0022 y prueba en producción) |
+| 11 | [Ajustes del cliente](11-ajustes-cliente/) — Nº correlativo (y Nº faltantes), proveedores con RUT, Nº doc. único, IVA calculado, impuesto especial, nueva subcuenta, KPIs y Excel de la búsqueda | 02, 04 | 🟡 Implementado (11.1–11.10; 11.12 Nº faltantes; 11.11: push de migraciones 0018–0023 y prueba en producción) |
 
 **Hito 1 (MVP solicitante + aprobación):** 01 → 08.3/8.5 (cargar correos) → 02 → 03.
 **Hito 2 (reemplaza al prototipo):** 04 → 05 → 06 → 07 → resto de 08.
